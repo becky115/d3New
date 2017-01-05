@@ -8,10 +8,10 @@
 
 //TODO debugMode
 var NaruSecD3Js = function (){
-	this._graphWidth = 0;
-	this._graphHeight = 0;
-	this._legendWidth = 0;
-	this._legendHeight = 0;
+	this._graphWidth = null;
+	this._graphHeight = null;
+	this._legendWidth = null;
+	this._legendHeight = null;
 	this.svgMargin = {
 		top: 0,
 		right: 0,
@@ -429,14 +429,108 @@ function createBarRect(objD3, objDraw, radius){
 
 function createLegend2(objDraw, objD3, objBars, optLegend){
 	//naru-chart-legend
-	var legendMaxRow = 3;
-	var legendMaxHeight = legendMaxRow * 10;
+
+	var legendWidth = objD3.getLegendWidth();
+	var legendHeight = objD3.getLegendHeight();
+
+	var rowHeight = 20;
+	var rowMaxCount = 3;
+
+	var basicWidth = 60;
+	//var legendMaxHeight = legendMaxRow * 10;
 
 	var labelMaxLength = d3.max(objD3.data, function(d){
 		return d[objD3.getX0Value()].length; //get
 	});
 
-	var legendWidth = objD3.getLegendWidth();
+	var maxWidth = (labelMaxLength * 8) + 18;//18: rect size
+
+	if(maxWidth < basicWidth) maxWidth = basicWidth;
+
+	var rowCount =  Math.floor(legendWidth / maxWidth);
+
+	if(rowCount > objD3.data.length) rowCount = objD3.data.length;
+
+
+	//var legendPosX = 0;
+	//var legendPosY = objD3.getGraphHeight() - legendMaxHeight;
+
+
+	var legendLayer = d3.select(".naru-chart-legend").select("svg").select("g.legendLayer");
+	//	.attr("transform", "translate("+legendPosX+", "+ legendPosY+")");
+
+
+	var legendStPos = (legendWidth - (rowCount * maxWidth))/2; //가운데로
+	console.log("legendWidth", legendWidth);
+	console.log("rowCount", rowCount);
+	console.log("maxWidth", maxWidth);
+	console.log("legendStPos", legendStPos);
+
+	var objLegends = legendLayer.selectAll("legend")
+		.data(objD3.data);
+
+	objLegends.enter()
+		.append("g")
+		.attr("class", "legend")
+		.attr("style", function(d, i){
+			/*
+			var y = Math.floor(i/legendCount) * 20;
+
+			if(y > legendMaxHeight){
+				return "display:none";
+			}else{
+				return"display:block";
+			}
+			*/
+			return "block";
+		})
+		.attr("transform", function(d, i) {
+			console.log(maxWidth, legendStPos);
+			var x = (i % rowCount) * maxWidth + legendStPos;
+			var y = Math.floor(i / rowCount) * rowHeight;
+			//.attr("transform", function(d, i) { return "translate("+0+","+(i * 20) +")"; }); --> 수직
+			return "translate("+x+","+y+")";
+		});
+
+	objLegends.append("rect")
+//		.filter(function(d, i){
+//			if(Math.floor(i/legendCount) < maxRow){
+//				return d;
+//			}
+////			if(수직 ){
+////				var yPosition = i * 20;
+////				if(yPosition <= _legendHeight) return d;
+////			}
+//			//수평
+//			//if(yPosition <= _legendHeight) return d;
+//
+//		})
+		.attr("x", 0)
+		.attr("width", 18)
+		.attr("height", 10)
+		.style("fill", function(d, i){
+			return NaruSecD3Js.getColor(i);
+		});
+
+	objLegends.append("text")
+//		.filter(function(d, i){
+//			console.log("filter....: " + maxRow)
+//			if(Math.floor(i/legendCount) < maxRow){
+//				return d;
+//			}
+////			var yPosition = i * 20;
+////			if(yPosition <= _legendHeight) return d;
+//		})
+		.attr("x", 20)
+		.attr("y", 10)
+		//.attr("dy", ".35em")
+		.attr("class", "legend-text")
+		.style("text-anchor", "start")
+		.style("fill", function(d, i) { return d3.rgb(NaruSecD3Js.getColor(i)); })
+		.text(function(d) {
+			console.log(d)
+			return d[objD3.getX0Value()];
+		});
 
 
 }
@@ -468,7 +562,7 @@ function createLegend(objDraw, objD3, objRect, optLegend){
 	
 	var legendPosX = 0;
 	var legendPosY = objD3.getGraphHeight() - legendMaxHeight;
-	console.log(legendPosY)
+
 	var legend = objDraw.append("g")
 						.attr("class", "legendLayer")
 						.attr("transform", "translate("+legendPosX+", "+ legendPosY+")");
@@ -969,7 +1063,7 @@ NaruSecD3Js.prototype = function () {
 			this.chartId = null;//TODO NEW
 
 			this._legendWidth = 0;
-			//this._legendHeight = 0;
+			this._legendHeight = 0;
 
 			this.axisX0 = 0; //NEW
 			this.x0Scale = null; //bottom
@@ -1086,7 +1180,7 @@ NaruSecD3Js.prototype = function () {
 				objLegendSvg.attr("width", this.getLegendWidth())
 							.attr("height", this.getLegendHeight());
 
-				objLegendSvg.append("g").attr("transform", "translate(" + this.svgMargin.left+ "," + 0+ ")");
+				objLegendSvg.append("g").attr("class", "legendLayer").attr("transform", "translate(" + this.svgMargin.left+ "," + 0+ ")");
 			}
 
 
