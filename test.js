@@ -9,10 +9,7 @@ function callData(){
 		{"count":2, "date":"20170102"},
 		{"count":1, "date":"20170103"},
 		{"count":100, "date":"20170104"},
-		{"count":3, "date":"20170105"},
-		{"count":20, "date":"20170106"},
-		{"count":30, "date":"20170107"}
-	];
+		{"count":3, "date":"20170105"}];
 	return data;
 }
 
