@@ -14,6 +14,7 @@ var NaruSecD3 = function (){
 	this.balloon = null;
 
 	this._init();
+	console.log(this)
 };
 
 
@@ -54,6 +55,9 @@ NaruSecD3.prototype = function () {
 			this.yAxis = [{
 				position: "left",
 				type: "linear"
+			},{
+				position: "right",
+				type: "linear"
 			}];
 
 			this.graph = [{
@@ -90,11 +94,12 @@ NaruSecD3.prototype = function () {
 
 		_setXAxis: function(xAxisOpt){
 			var defaultOpt = this.xAxis[0];
-			console.log("----", defaultOpt)
-			this.xAxis = [];
+			console.log("----_setXAxis", defaultOpt)
 
+			this.xAxis = [];
 			var objThis = this;
 			if(NaruSecD3.isArray(xAxisOpt)){
+
 				for(var i = 0; i < xAxisOpt.length; i++){
 					_setOption(xAxisOpt[i]);
 					if(i > 0) break; //max 1 xAxis
@@ -104,7 +109,9 @@ NaruSecD3.prototype = function () {
 				_setOption(xAxisOpt);
 
 			}else{
-				throw new Error("xAxis option error");
+				// default xAxis only 1;
+				this.xAxis.push(defaultOpt[0]);
+				//throw new Error("xAxis option error", xAxisOpt);
 			}
 
 			function _setOption(opt){
@@ -125,21 +132,24 @@ NaruSecD3.prototype = function () {
 			var defaultOpt = [];
 			defaultOpt.push(this.yAxis[0]);
 			defaultOpt.push(this.yAxis[1]);
-			console.log("----", defaultOpt);
-			this.yAxis = [];
+			console.log("----_setYAxis", defaultOpt);
 
+			this.yAxis = [];
 			var objThis = this;
 			if(NaruSecD3.isArray(yAxisOpt)){
+
 				for(var i = 0; i < yAxisOpt.length; i++){
 					_setOption(yAxisOpt[i], i);
 					if(i > 1) break; //max 2 yAxis
 				}
 				console.log("result", this.yAxis)
 			}else if(NaruSecD3.isObject(yAxisOpt)){
-				_setOption(yAxisOpt);
 
+				_setOption(yAxisOpt);
 			}else{
-				throw new Error("yAxis option error");
+				// default yAxis only 1;
+				this.yAxis.push(defaultOpt[0]);
+				//throw new Error("yAxis option error", yAxisOpt);
 			}
 
 			function _setOption(opt, index){
@@ -158,6 +168,7 @@ NaruSecD3.prototype = function () {
 
 		//user data
 		setData: function(data){
+			console.log("setData", data)
 			if(this._validData(data)){
 				this.chart.data = data;
 			}
@@ -165,6 +176,7 @@ NaruSecD3.prototype = function () {
 		},
 
 		_validData: function(data){
+			console.log(this)
 			if(data !== undefined){ //TODO 조건 추가
 				return true;
 			}
@@ -235,7 +247,13 @@ NaruSecD3.createGraph = function(opt, data){
 
 	var objD3 = new NaruSecD3();
 	if(!objD3.setOption(opt)) return;
-	console.log(objD3.chart.chartId);
+	console.log(objD3);
+	console.log(objD3.setData)
+	return {
+		setData: function(){
+			return objD3.setData.apply(objD3, arguments);
+		}
+	}
 
 };
 
