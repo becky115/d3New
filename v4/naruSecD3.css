@@ -39,7 +39,6 @@ div.naru-d3-wrapper{
     height:1000px;
     background-color: lightgoldenrodyellow;
     padding-top:200px;
-
 }
 
 div.naru-d3-default{
@@ -47,5 +46,6 @@ div.naru-d3-default{
     width:75%;
     height:300px;
     margin:0px auto;
+    position:relative;
 }
 

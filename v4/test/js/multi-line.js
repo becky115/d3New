@@ -11,19 +11,30 @@ window.onload = function(){
 function test(){
 	var chartOpt = {
 		"chartId":"multiLineGraph1",
+		"dateFormat":"%Y-%m-%d",
 		"graph":[{
 			"type": "line",
-			"color": "#7764E7"
+			"color": "#7764E7",
+			"value":"count1",
 		},{
 			"type": "line",
-			"color":"#1DBC3D"
+			"color":"#1DBC3D",
+			"value":"count2",
 		}],
 		"xAxis":{
-
+			"value":"date"
 		},
-		"yAxis":{
-
-		}
+		//"yAxis":[{
+		//	"value":"count1",
+		//	"title":"title1"
+		//},{
+		//	"value":"count2",
+		//	"title":"title2"
+		//}],
+		"yAxis":[{
+			"value":"count1",
+			"title":"title1"
+		}]
 	};
 
 	var chartData = [{
@@ -62,6 +73,5 @@ function test(){
 	];
 
 	var chart = NaruSecD3.createGraph(chartOpt);
-	console.log(chart);
 	chart.setData(chartData);
 }

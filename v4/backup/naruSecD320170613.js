@@ -1388,6 +1388,7 @@ NaruSecD3.createMultiLineGraph = function(opt, data){
 		var dataNest = d3.nest()
 			.key(function(d) {return d.key;})
 			.entries(objD3.data);
+
 		var dataCount = data.length == 0 ? 0:d3.max(dataNest, function(d) {
 			return d3.max(d.values, function (d) {
 				return d.value;
