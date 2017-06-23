@@ -13,15 +13,15 @@ function test(){
 		"chartId":"multiLineGraph1",
 		"dateFormat":"%Y-%m-%d",
 		"graph":[{
+			"type": "bar",
+			"color":"#1DBC3D",
+			"value":"count2",
+			"balloonText": "[[date]]:[[count2]]"
+		},{
 			"type": "line",
 			"color": "#7764E7",
 			"value":"count1",
 			"balloonText": "[[date]]:[[count1]]"
-		},{
-			"type": "line",
-			"color":"#1DBC3D",
-			"value":"count2",
-			"balloonText": "[[date]]:[[count2]]"
 		}],
 		"xAxis":{
 			"value":"date"
@@ -44,7 +44,7 @@ function test(){
 	var chartData = [{
 			"date": "2017-06-01",
 			"count1": 35,
-			"count2": 1
+			"count2": 35
 		},{
 			"date": "2017-06-02",
 			"count1": 15,

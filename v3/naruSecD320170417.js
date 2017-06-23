@@ -2410,8 +2410,7 @@ NaruSecD3Js.prototype.createBarRect = function(objDraw, radius){
 
 			objBars.attr("x", function(d){
 				return objD3.getX0Scale(d[objD3.getX0Value()]) + outer;
-			})
-				.attr("width", barWidth);
+			}).attr("width", barWidth);
 
 			if(animation && Object.keys(animation).length > 0){
 				//transition

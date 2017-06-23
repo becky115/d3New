@@ -14,7 +14,6 @@ var NaruSecD3 = function (){
 	this.balloon = null;
 	
 	this._init();
-	console.log(this)
 };
 
 NaruSecD3.prototype = function () {
@@ -22,7 +21,7 @@ NaruSecD3.prototype = function () {
 	
 	return {
 		_init: function(){
-			console.log("_init");
+			//console.log("_init");
 			this._initValue();
 			this._initEvent();
 		},
@@ -84,7 +83,8 @@ NaruSecD3.prototype = function () {
 			this.graph = [{
 				type: "bar",//default
 				color: NaruSecD3.getColor(0),
-				value: null
+				value: null,
+				balloonText: null
 			}];
 			
 			this.legend = {
@@ -92,7 +92,10 @@ NaruSecD3.prototype = function () {
 				height: 0,
 				position: "right" //default
 			};
-			this.balloon = null;
+			
+			this.balloon = {
+				radius:0
+			};
 		},
 		
 		//user option
@@ -101,17 +104,21 @@ NaruSecD3.prototype = function () {
 			try{
 				if(!NaruSecD3.isObject(opt)){
 					//throw "chart opt" + opt;
+					//TODO
 					throw new Error("chart opt", opt);
 				}else{
 					var graphOpt = opt.graph;
 					var xAxisOpt = opt.xAxis;
 					var yAxisOpt = opt.yAxis;
+					var balloonOpt = opt.balloon;
 					delete opt.graph;
 					
 					this._setDefaultOption(opt);
 					this._setGraph(graphOpt);
 					this._setXAxis(xAxisOpt);
 					this._setYAxis(yAxisOpt);
+					
+					this._setBalloon(balloonOpt);
 				}
 				
 			}catch(e){
@@ -120,6 +127,16 @@ NaruSecD3.prototype = function () {
 			}
 			
 			return true;
+		},
+		
+		_setBalloon: function(balloonOpt){
+			if(NaruSecD3.isObject(balloonOpt)){
+				if(balloonOpt.hasOwnProperty("radius") || NaruSecD3.isNumber(balloonOpt.radius)){
+					//max 5;
+					var maxRadius = 5;
+					this.balloon.radius = parseInt(balloonOpt.radius) > maxRadius ? maxRadius:parseInt(balloonOpt.radius);
+				}
+			}
 		},
 		
 		_setXAxis: function(xAxisOpt){
@@ -136,7 +153,6 @@ NaruSecD3.prototype = function () {
 				//	console.log("result", this.xAxis);
 			}else if(NaruSecD3.isObject(xAxisOpt)){
 				_setOption(xAxisOpt);
-				
 			}else{
 				// default xAxis only 1;
 				this.xAxis.push(defaultOpt[0]);
@@ -144,9 +160,7 @@ NaruSecD3.prototype = function () {
 			}
 			
 			function _setOption(opt){
-				
 				var tempOpt =  JSON.parse(JSON.stringify(defaultOpt));
-				
 				
 				if(opt.hasOwnProperty("position")){
 					tempOpt.position = opt.position;
@@ -165,7 +179,7 @@ NaruSecD3.prototype = function () {
 			var defaultOpt = [];
 			defaultOpt.push(this.yAxis[0]);
 			defaultOpt.push(this.yAxis[1]);
-			console.log("----_setYAxis", defaultOpt);
+			//console.log("----_setYAxis", defaultOpt);
 			
 			this.yAxis = [];
 			var objThis = this;
@@ -174,7 +188,7 @@ NaruSecD3.prototype = function () {
 					if(i > 1) break; //max 2 yAxis
 					_setOption(yAxisOpt[i], i);
 				}
-				console.log("result", this.yAxis)
+				//console.log("result", this.yAxis)
 			}else if(NaruSecD3.isObject(yAxisOpt)){
 				_setOption(yAxisOpt);
 			}else{
@@ -186,7 +200,6 @@ NaruSecD3.prototype = function () {
 			function _setOption(opt, index){
 				//console.log("defaultOpt", defaultOpt)
 				var tempOpt =  JSON.parse(JSON.stringify(defaultOpt[index]));
-				
 				
 				if(opt.hasOwnProperty("position")){
 					tempOpt.position = opt.position;
@@ -203,7 +216,7 @@ NaruSecD3.prototype = function () {
 				
 				var transX = this._getXPosition();
 				var transY = -1 * (this._getXTickSize()+ this._getXTickTitleSize());
-				console.log("transY", transY);
+				//console.log("transY", transY);
 				
 				this._getDrawer().select("."+className+".mark")
 					.attr("transform", "translate("+ transX +"," + transY + ")")
@@ -219,9 +232,8 @@ NaruSecD3.prototype = function () {
 			for(var i=0; i<this.yAxis.length; i++){
 				if(i > 1) break;
 				
-				
 				var yAxis = this.yAxis[i];
-				console.log("drawy....", yAxis);
+				//console.log("drawy....", yAxis);
 				var className = yAxis.className.replace(/\s/g, ".");
 				
 				if(i === 0){
@@ -283,12 +295,13 @@ NaruSecD3.prototype = function () {
 			var dateFormat = this.chart.dateFormat;
 			var xValue = this._getXAxisValue();
 			var data = this.chart.data.map(function(d){
+				//console.log(dateFormat);
 				if(dateFormat){
 					return NaruSecD3.getTimeDate(dateFormat, d[xValue]);
 				}
 				return d[xValue];
 			});
-			// console.log("_setXDomain", data);
+			 //console.log("_setXDomain", data);
 			this.xAxis[0].scale.domain(data);
 		},
 		
@@ -330,8 +343,9 @@ NaruSecD3.prototype = function () {
 				
 				if(NaruSecD3.isNumber(yMinValue) && NaruSecD3.isNumber(yMaxValue)){
 					//console.log(this.yAxis[i]);
-					console.log("set y  domain", yMinValue, yMaxValue);
+					
 					this.yAxis[i].scale.domain([yMinValue, yMaxValue]);
+//					console.log("-- ", i, this.yAxis[i].scale(yMinValue));
 				}
 				
 			}
@@ -341,7 +355,6 @@ NaruSecD3.prototype = function () {
 		
 		//user data
 		setData: function(data){
-			console.log("setData", data);
 			if(this._validData(data)){
 				this.chart.data = data;
 				//var chartData = this.chart.data;
@@ -349,21 +362,16 @@ NaruSecD3.prototype = function () {
 				// x축 svgWidth 설정
 				//this.setAxisWidth(yMaxDomain, yOpt, objLegend);
 				
-				//set x domain
-				this._setXDomain();
 				
-				//set y domain
-				this._setYDomain();
-				
+				this._setXDomain();//set x domain
+				this._setYDomain();//set y domain
 				
 				this._drawXAxis();
 				this._drawYAxis();
 				
 				
 				for(var i=0; i<this.graph.length; i++){
-					//this.graph[i].draw();
-					console.log("############ ");
-					console.log("############ graph draw i", i);
+					//console.log("############ graph draw i", i);
 					this.graph[i].draw.apply(this, arguments);
 				}
 			}
@@ -392,7 +400,7 @@ NaruSecD3.prototype = function () {
 		
 		_setGraph: function(graphOpt){
 			var defaultOpt = this.graph[0];
-			console.log("----", defaultOpt);
+			//console.log("----", defaultOpt);
 			this.graph = [];
 			
 			var objThis = this;
@@ -420,6 +428,10 @@ NaruSecD3.prototype = function () {
 				
 				if(opt.hasOwnProperty("value")) {
 					tempOpt.value = opt.value;
+				}
+				
+				if(opt.hasOwnProperty("balloonText")) {
+					tempOpt.balloonText = opt.balloonText;
 				}
 				
 				objThis.graph.push(tempOpt);
@@ -597,7 +609,7 @@ NaruSecD3.prototype = function () {
 		_createYAxis: function(){
 			if(NaruSecD3.isArray(this.yAxis)){
 				for(var i = 0; i < this.yAxis.length; i++){
-					console.log("_createYAxis", i);
+					//console.log("_createYAxis", i);
 					if(i > 1) break; //max 2 yAxis
 					
 					var yAxis = this.yAxis[i];
@@ -616,6 +628,7 @@ NaruSecD3.prototype = function () {
 					
 					if(yAxis.scale !== null) {
 						var yRange = -1 * this._getXTickSize();
+						//console.log("yRange", yRange);
 						yAxis.scale.range([yRange, 0]);
 					}
 					
@@ -686,8 +699,8 @@ NaruSecD3.prototype = function () {
 			chartOpt.width = width - (chartOpt.margin.left + chartOpt.margin.right);
 			chartOpt.height = height - (chartOpt.margin.top + chartOpt.margin.bottom);
 			
-			console.log("svg ---", width, height);
-			console.log(d3.select("#" + chartId).select("svg").size());
+			// console.log("svg ---", width, height);
+			// console.log(d3.select("#" + chartId).select("svg").size());
 			d3.select("#" + chartId).select("svg")
 			//				.attr("width", "100%")
 			//				.attr("height", "100%");
@@ -719,7 +732,7 @@ NaruSecD3.prototype = function () {
 			
 			graphLayer.select("svg").html("");
 			var objSvg = graphLayer.append("svg").attr("class", "naru-d3-svg");
-			console.log("create svg size", graphLayer.size(), clientRect);
+			//console.log("create svg size", graphLayer.size(), clientRect);
 			this._setSvgSize(clientRect.width, clientRect.height);
 			
 			//var objTemp = objSvg.append("g").attr("class", "naru-graph").attr("transform", "translate(" + (chartOpt.margin.left + this.axisX0 ) + "," + chartOpt.margin.top + ")");
@@ -745,7 +758,7 @@ NaruSecD3.prototype = function () {
 		},
 		
 		_getXAxisValue: function(){
-			console.log(this.xAxis);
+			//console.log(this.xAxis);
 			return this.xAxis[0].value;
 		},
 		
@@ -767,14 +780,14 @@ NaruSecD3.prototype = function () {
 		},
 		
 		_createLine: function(objGraph, graphIndex, yAxisIndex){
-			console.log("_createLine    graphIndex", graphIndex, "yAxisIndex", yAxisIndex);
+			//console.log("_createLine    graphIndex", graphIndex, "yAxisIndex", yAxisIndex);
 			var drawer = this._getDrawer();
 			var lineLayer = drawer.select(".line-layer.g_"+graphIndex);
 			
 			if(lineLayer.size() === 0){
 				lineLayer = drawer.append("g")
-						.attr("class", "line-layer g_"+graphIndex)
-						.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
+					.attr("class", "line-layer g_"+graphIndex)
+					.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
 			}
 			
 			return function(){
@@ -782,7 +795,8 @@ NaruSecD3.prototype = function () {
 				var xValue = this._getXAxisValue();
 				var yValue = objGraph.value;//this._getYAxisValue(index);
 				var color = objGraph.color;
-				console.log("-----create line---------xValue", xValue, "yValue",yValue, color);
+				var balloonText = objGraph.balloonText;
+				//console.log("-----create line---------xValue", xValue, "yValue",yValue, color);
 				
 				var objD3 = this;
 				var line = d3.line()
@@ -813,12 +827,9 @@ NaruSecD3.prototype = function () {
 				}
 				
 				var chartData = this.chart.data;
-				objLine
-					.datum(chartData)
-					.attr("d", line);
+				objLine.datum(chartData).attr("d", line);
 				
 				var circleTemp = lineLayer.selectAll("circle").data(chartData);
-				
 				circleTemp.exit().remove();
 				
 				var circle = circleTemp.enter()
@@ -828,7 +839,7 @@ NaruSecD3.prototype = function () {
 					.attr("r", 2)
 					//.style("stroke", objD3.getGraphColor(color))
 					.style("stroke", color)
-					.attr("fill", "#fff")
+					.attr("fill", "#ff4365")
 					.style("stroke-width", 1)
 					.attr("cx", function(d) {
 						var xData = d[xValue];
@@ -844,7 +855,11 @@ NaruSecD3.prototype = function () {
 						return objD3._getYAxisScale(yAxisIndex)(yData);
 					});
 				
-				//if(opt.balloon && circle !== null){
+				//TODO balloonText로 체크 함
+				if(balloonText !== null && circle !== null){
+					this._createBalloon(circle, "circle", balloonText);
+				}
+				//if(balloonText !&& circle !== null){
 				//   if(balloonText) opt.balloon.value = balloonText;
 				//
 				//   opt.balloon.dateFormat = dateFormat;
@@ -856,8 +871,436 @@ NaruSecD3.prototype = function () {
 			
 		},
 		
+		_createBar: function(objGraph, graphIndex, yAxisIndex){
+			var drawer = this._getDrawer();
+			var barLayer = drawer.select(".bar-layer.g_"+graphIndex);
+			
+			if(barLayer.size() === 0){
+				barLayer = drawer.append("g")
+					.attr("class", "bar-layer g_"+graphIndex)
+					.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
+			}
+			
+			return function(){
+				var dateFormat = this.chart.dateFormat;
+				var xValue = this._getXAxisValue();
+				var yValue = objGraph.value;//this._getYAxisValue(index);
+				var color = objGraph.color;
+				var balloonText = objGraph.balloonText;
+				
+				//TODO
+				//var radius = objGraph.radius;
+				//var animation = this.chart.animation;
+				var animation = {
+					"duration": 1000
+				};
+				
+				var objD3 = this;
+				var chartData = this.chart.data;
+				var objBars = barLayer.selectAll(".bar")
+					.data(chartData);
+				
+				objBars.exit().remove();
+				
+				objBars.enter()
+					.append("rect")
+					.merge(objBars)
+					.attr("class", "bar");
+				
+				objBars = barLayer.selectAll(".bar");
+				
+				/*TODO
+				radius = parseInt(radius);
+				if(!isNaN(radius)){
+					objBars.attr("rx", radius)
+						.attr("ry", radius);
+				}
+				*/
+				
+				// objBars.attr("fill", function(d, i) {
+				// 	var color = d.color;
+				// 	//var parentNode = d3.select(this).node().parentNode;
+				// 	//return "url(#"+objD3.getGradientColor(color ? color:i)+")";
+				// 	return color;
+				// });
+				objBars.attr("fill", color);
+				
+				var barWidth = objD3._getXAxisScale().bandwidth() * 3 / 4;
+				var outer = (objD3._getXAxisScale().bandwidth() - barWidth) / 2;
+				
+				objBars.attr("x", function(d){
+					var xData = d[xValue];
+					if(dateFormat !== null){
+						xData = NaruSecD3.getTimeDate(dateFormat, xData);
+					}
+					console.log(xValue, xData, outer, objD3._getXAxisScale()(xData))
+					return objD3._getXAxisScale()(xData) + outer;
+				}).attr("width", barWidth);
+				
+				//console.log("animation", animation, Object.keys(animation).length)
+				if(animation && Object.keys(animation).length > 0){
+					//transition
+					objBars
+						.attr("y", function(d){
+							var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
+							return objD3._getYAxisScale(yAxisIndex)(maxDomain);
+						})
+						.attr("height", 0)
+						.transition().duration(isNaN(parseInt(animation.duration)) ? 1000:parseInt(animation.duration))
+						.attr("y", function(d){
+							var yData = d[yValue];
+							return objD3._getYAxisScale(yAxisIndex)(yData);
+						})
+						.attr("height", function(d){
+							var yData = d[yValue];
+							var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
+							return objD3._getYAxisScale(yAxisIndex)(maxDomain) - objD3._getYAxisScale(yAxisIndex)(yData);
+						});
+				}else{
+					objBars.attr("y", function(d){
+						var yData = d[yValue];
+						return objD3._getYAxisScale(yAxisIndex)(yData);
+					})
+					.attr("height", function(d){
+						var yData = d[yValue];
+						var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
+						return objD3._getYAxisScale(yAxisIndex)(maxDomain) - objD3._getYAxisScale(yAxisIndex)(yData);
+					});
+				}
+				
+				if(balloonText !== null && objBars !== null){
+					this._createBalloon(objBars, "rect", balloonText);
+				}
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+			}
+			
+		},
+		
+		_getGraphColor: function(color, index, gradientFlag){
+			//console.log("_getGraphColor", color, index, gradientFlag);
+			gradientFlag = false;
+			var chartId = this.chart.chartId;
+			
+			var resultColor = "#000";
+			if(!gradientFlag){
+				//color = color === undefined ? NaruSecD3.getColor(0):color;
+				var hexRegexp = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
+				if(!hexRegexp.test(color)){
+					//TODO graph this.graph[0] this.graph[1] 여러개 있을 경우 index에해당하는
+					color = NaruSecD3.getColor(index);
+				}
+				resultColor = color;
+			}else{
+				var gradientUrl = "url(#gradient_" + chartId + "_";
+				color = color.replace(gradientUrl, "").replace(')', "");
+				if(color) resultColor = "#"+color;
+			}
+			
+			return d3.rgb(resultColor);
+		
+		},
+		
+		
+		_createBalloon: function(objOver, type, balloonText){
+			//console.log("_createBalloon", objOver, type, balloonText)
+			var objD3 = this;
+			var chartId = this.chart.chartId;
+			
+			var divToolTip = createToolTipLayer();
+			var drawer = this._getDrawer();
+			
+			drawer.on("mouseleave", function(){
+				objD3.hideToolTip(divToolTip);
+			});
+			
+			var regexp = /[\[]{2}([^\]]+)[\]]{2}/g;
+			
+			/**
+			 * tooltip 좌표이동
+			 * tooltip 왼쪽,오른쪽,위,아래인지 체크
+			 * tooltip color변경(border)
+			 * tooltip show
+			 */
+			objOver.on("mousemove.one", function() {//툴팁 좌표이동
+				var clientPos = d3.select("#"+chartId).select("svg").node().getBoundingClientRect();
+				objD3.hideToolTip(divToolTip);
+				
+				var arrowLine = divToolTip.select(".arrow-line");
+				var arrowMiddle = divToolTip.select(".arrow-middle");
+				
+				
+				var arrowLinePos = arrowLine.node().getBoundingClientRect();
+				var divToolTipPos = divToolTip.node().getBoundingClientRect();
+				var toolTipContentWidth = parseInt(divToolTipPos.width, 10);
+				var toolTipContentHeight = parseInt(divToolTipPos.height, 10);
+				var toolTipArrowWidth = parseInt(arrowLinePos.width, 10) / 2;
+				var toolTipArrowHeight = parseInt(arrowLinePos.height, 10) / 2;
+				var toolTipWidth = toolTipContentWidth;// width는 toolTipArrowWidth 영향 없음
+				var toolTipHeight = toolTipContentHeight + toolTipArrowHeight;
+				
+				var limitMinX = 0;
+				var limitMaxX = clientPos.width - toolTipWidth;
+				var limitMinY = 0;
+				var limitMaxY = clientPos.height - toolTipHeight;
+				
+				var posX = d3.event.clientX - clientPos.left - (toolTipWidth / 2);
+				var posY = d3.event.clientY - clientPos.top - (toolTipHeight);
+				
+				divToolTip.classed("top", false);
+				divToolTip.classed("bottom", false);
+				divToolTip.classed("left", false);
+				divToolTip.classed("right", false);
+		
+				arrowLine.style({
+					"top": null,
+					"right": null,
+					"left": null,
+					"bottom": null
+				});
+			
+				arrowMiddle.style({
+					"top": null,
+					"right": null,
+					"left": null,
+					"bottom": null
+				});
+
+				//check posX
+				if(posX > limitMaxX){
+					posX = posX - ((toolTipWidth + toolTipArrowWidth)/ 2);
+					divToolTip.classed("left", true);
+				}else if(posX < limitMinX){
+					posX = d3.event.clientX - clientPos.left + (toolTipArrowWidth / 2);
+					divToolTip.classed("right", true);
+				}
+				
+				if(divToolTip.classed("left") || divToolTip.classed("right")){
+					posY = d3.event.clientY - clientPos.top - (toolTipContentHeight / 2);
+					
+					if(posY > limitMaxY){
+						posY = limitMaxY;
+						
+						arrowLine.style("top", (d3.event.clientY - clientPos.top - posY)+"px");
+						arrowMiddle.style("top", (d3.event.clientY - clientPos.top - posY)+"px");
+					}
+				}
+				
+				
+				if(!divToolTip.classed("left") && !divToolTip.classed("right")){
+					//check posY
+					if(posY < limitMinY){
+						posY = limitMinY;
+						
+						if(toolTipHeight > (d3.event.clientY - clientPos.top)){
+							posY = d3.event.clientY - clientPos.top + (toolTipArrowHeight);// + (toolTipHeight + toolTipArrowHeight + 10);
+							divToolTip.classed("bottom", true);
+						}else{
+							divToolTip.classed("top", true);
+						}
+					}else{
+						divToolTip.classed("top", true);
+					}
+				}
+				
+				//var arrowLine = divToolTip.select(".arrow-line");
+				var borderColor = divToolTip.style("border-color");
+				var heightMarginSize = 2;
+				var widthMarginSize = 5;
+				if(divToolTip.classed("bottom")){
+					arrowLine.style("border-top-color", "transparent");
+					arrowLine.style("border-right-color", "transparent");
+					arrowLine.style("border-bottom-color", borderColor);
+					arrowLine.style("border-left-color", "transparent");
+					
+					posY = posY + heightMarginSize;
+				}else if(divToolTip.classed("left")){
+					arrowLine.style("border-top-color", "transparent");
+					arrowLine.style("border-right-color", "transparent");
+					arrowLine.style("border-bottom-color", "transparent");
+					arrowLine.style("border-left-color", borderColor);
+					
+					posX = posX - widthMarginSize;
+				}else if(divToolTip.classed("right")){
+					arrowLine.style("border-top-color", "transparent");
+					arrowLine.style("border-right-color", borderColor);
+					arrowLine.style("border-bottom-color", "transparent");
+					arrowLine.style("border-left-color", "transparent");
+					
+					posX = posX + widthMarginSize;
+				}else{//basic top
+					arrowLine.style("border-top-color", borderColor);
+					arrowLine.style("border-right-color", "transparent");
+					arrowLine.style("border-bottom-color", "transparent");
+					arrowLine.style("border-left-color", "transparent");
+					
+					posY = posY - heightMarginSize;
+				}
+				
+			
+				divToolTip.style("left", posX + "px")
+					.style("top", posY + "px");
+				
+				objD3.showToolTip(divToolTip);
+			});
+			
+			
+			
+			//var dateFormat = this.chart.dateFormat;
+			var xValue = this._getXAxisValue();
+			/**
+			 * tooltip set text
+			 * tooltip color변경(border)
+			 */
+			function mouseOverToolTip(fillColor, i, d){
+				var toolTipMessage = balloonText.replace(regexp, function(match, p1){//match, p1, p2, p3, offset, string
+					var dataMap = d.data === undefined ? d:d.data;
+					
+					//console.log(xValue, dataMap[p1]);
+					/*
+					if(xValue === p1 && timeFormat){
+						if(dataMap[p1] instanceof Date){
+							return NaruSecD3.getTimeString(timeFormat, dataMap[p1]);
+						}
+						return NaruSecD3.getTimeString(timeFormat, NaruSecD3.getTimeDate(dateFormat, dataMap[p1]));
+					}
+					*/
+					return dataMap[p1] !== undefined && dataMap[p1] !== null ? dataMap[p1]:"";
+				});
+				//console.log("toolTipMessage", toolTipMessage);
+				divToolTip.select(".content").html(toolTipMessage);
+				
+				// var borderColor = "";
+				// if(!d.color){//TODO colorField
+				// 	borderColor = objD3.getGraphColor(fillColor, i, true);
+				// }else{
+				// 	borderColor = objD3.getGraphColor(d.color, i);
+				// }
+				
+				var borderColor = objD3._getGraphColor(fillColor, i).darker(0.5);
+				divToolTip.style("border", "2px solid "+ borderColor);
+				
+				return borderColor;
+			}
+			
+			if(type === "rect" || type === "pie"){
+				objOver.on("mouseover.one", function(d, i){
+					var obj = d3.select(this);
+					var color = d.color;
+					if(!color){
+						color = obj.attr("fill");
+						// var gradientUrl = "url(#gradient_"+chartId+"_";
+						//
+						// color = color.replace(gradientUrl, "").replace(')', "");
+						//if(color) color = "#"+color;
+					}
+					mouseOverToolTip(color, i, d);
+				});
+			}else if(type === "circle"){
+				//console.log("type", type);
+				objOver.on("mouseout.one", function(){
+					var obj = d3.select(this);
+					if(objD3.rScale){
+						obj.transition().duration(500)
+							.attr("r", function(d){
+								return objD3.rScale(d[xValue]);
+							});
+					}else{
+						obj.transition().duration(500).attr("r", 2);
+					}
+				})
+				.on("mouseover.one", function(d, i){
+					var obj = d3.select(this);
+					var color = d.color ? d.color:NaruSecD3.rgbToHex(d3.select(this).style("stroke"));
+					
+					mouseOverToolTip(color, i, d);
+					
+					if(objD3.rScale){
+						obj.transition().duration(100)
+							.attr("r", function(d){
+								return objD3.rScale(d[xValue]) + 1;
+							});
+					}else{
+						obj.transition().duration(100).attr("r", 3);
+					}
+				});
+			}else if(type === "force"){
+				objOver.on("mouseout.one", function(){
+					var obj = d3.select(this);
+					obj.transition().duration(500).attr("r", 2);
+				})
+				.on("mouseover.one", function(d, i){
+					var obj = d3.select(this);
+					var color = d.color;
+					if(!color){
+						color = obj.attr("fill");
+						var gradientUrl = "url(#gradient_" + chartId + "_";
+						
+						color = color.replace(gradientUrl, "").replace(')', "");
+						if(color) color = "#"+color;
+					}
+					mouseOverToolTip(color, i, d);
+					obj.transition().duration(100).attr("r", 3);
+				});
+			}else if(type === "treemap") {
+				//console.log("_createBalloon", type);
+				objOver.on("mouseover.one", function (d, i) {
+					var obj = d3.select(this);
+					var color = d.color;
+					if (!color) {
+						color = obj.attr("fill");
+						var gradientUrl = "url(#gradient_" + chartId + "_";
+						
+						color = color.replace(gradientUrl, "").replace(')', "");
+						if (color) color = "#" + color;
+					}
+					mouseOverToolTip(color, i, d);
+				});
+			}
+			
+			function createToolTipLayer(){
+				var objChart = d3.select("#"+chartId);
+				var toolTipClassName = "naru-d3-tooltip";
+				var divToolTip = objChart.select("." + toolTipClassName);
+				if (divToolTip.size() === 0) {
+					divToolTip = objChart.append("div").attr("class", toolTipClassName);
+					divToolTip.append("span").attr("class", "content");
+					divToolTip.append("span").attr("class", "arrow-line");
+					divToolTip.append("span").attr("class", "arrow-middle");
+				}
+				
+				divToolTip.style({
+					"border-radius":objD3.legend.radius+"px"
+				});
+				
+				return divToolTip;
+			}
+		},
+		
+		showToolTip: function (objToolTip) {
+			objToolTip.transition()
+				.duration(100)
+				.style("opacity", 0.9);
+		},
+		
+		hideToolTip: function(objToolTip){
+			objToolTip.transition()
+				.duration(100)
+				.style("opacity", 0);
+		},
+		
 		resize: function(){
-			console.log("resize")
+			//console.log("resize");
 			var chartId = this.chart.chartId;
 			var objChart = d3.select("#" + chartId);
 			
@@ -901,15 +1344,13 @@ NaruSecD3.prototype = function () {
 		
 		addWindowResizeEvent: function(objLegend){
 			var chartId = this.chart.chartId;
-			console.log("addWindowResizeEvent", chartId)
-			
+			//console.log("addWindowResizeEvent", chartId);
 			
 			var objD3 = this;
-			function test(){
-				
-				console.log("test resize", objD3, chartId)
+			function test() {
+				//console.log("test resize", objD3, chartId);
 				var objChart = d3.select("#" + chartId);
-				if(objChart.size() === 0){
+				if (objChart.size() === 0) {
 					objD3.removeWindowResizeEvent();
 					return;
 				}
@@ -919,29 +1360,19 @@ NaruSecD3.prototype = function () {
 				var height = clientRect.height;
 				
 				
-				if(width > 0 && height > 0){
+				if (width > 0 && height > 0) {
 					objD3.resize();
 					
 					
-					for(var i=0; i<objD3.graph.length; i++){
-						//this.graph[i].draw();
-						console.log("############ ");
-						console.log("############ graph draw i", i);
+					for (var i = 0; i < objD3.graph.length; i++) {
 						objD3.graph[i].draw.apply(objD3, arguments);
 					}
-					
-					
-					// drawFn();
 					//
 					// if(objLegend && objLegend.hasOwnProperty("resize")){
 					// 	objLegend.resize();
 					// }
 				}
 			}
-		
-			
-			
-			
 			
 			//resizeEvent[chartId] = test.apply(this, arguments);
 			
@@ -972,41 +1403,40 @@ NaruSecD3.prototype = function () {
 			var y = textTemp.attr("y");
 			var dy = parseFloat(textTemp.attr("dy"));
 			
-			var objTspan = textTemp.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
+			var objTSpan = textTemp.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
 			var dateTemp = NaruSecD3.getTimeDate(x0DateFormat, word);
 			var wordText = word;
 			var replaceText = wordText;
 			
 			if(checkTickDateLength(x0DateFormat, width)){
-				if(beforeDate != null){
+				var parentNode = objTSpan.node().parentNode;
+				if(beforeDate !== null){
+					var check = false;
 					if(beforeDate.getFullYear() < dateTemp.getFullYear()){
 						replaceText = NaruSecD3.getTimeString("%Y", dateTemp); //full year
-						var parentNode = objTspan.node().parentNode;
-						d3.select(parentNode).classed("tickText", true);
+						
+						check = true;
 					}else if(beforeDate.getMonth() < dateTemp.getMonth()){
 						replaceText = NaruSecD3.getTimeString("%b", dateTemp);//short month
-						var parentNode = objTspan.node().parentNode;
-						d3.select(parentNode).classed("tickText", true);
+						check = true;
 					}else{
 						replaceText = NaruSecD3.getTimeString("%e", dateTemp);
 						if(checkTickDateLength("%e", width)){
 							replaceText = "";
 						}
-						d3.select(parentNode).classed("tickText", false);
 					}
+					d3.select(parentNode).classed("tickText", check);
 				}else{//first
 					replaceText = NaruSecD3.getTimeString("%b", dateTemp); //default first short month;
 					if(checkTickDateLength("%b", width)){
 						replaceText = "";
-					}else{
-						var parentNode = objTspan.node().parentNode;
+					}else {
 						d3.select(parentNode).classed("tickText", true);
 					}
 					
-					
 				}
 			}
-			objTspan.text(replaceText);
+			objTSpan.text(replaceText);
 			beforeDate = dateTemp;
 			
 			function checkTickDateLength(fmt, width){
@@ -1030,7 +1460,6 @@ NaruSecD3.prototype = function () {
 
 
 NaruSecD3.createGraph = function(opt, data){
-	console.log("createGraphcreateGraph")
 	var objD3 = new NaruSecD3();
 	if(!objD3.setOption(opt)) return;
 	
@@ -1040,27 +1469,17 @@ NaruSecD3.createGraph = function(opt, data){
 	
 	for(var i = 0; i < objD3.graph.length; i++){
 		var objGraph = objD3.graph[i];
+		var yAxisIndex = objGraph.yAxisIndex === undefined || objGraph.yAxisIndex === null? 0:objGraph.yAxisIndex;
 		if(objGraph.type === "line"){
-			var yAxisIndex = objGraph.yAxisIndex === undefined || objGraph.yAxisIndex === null? 0:objGraph.yAxisIndex;
-			console.log("yAxisIndex", objGraph, yAxisIndex);
 			objGraph.draw = objD3._createLine(objGraph, i, yAxisIndex);
+		}else if(objGraph.type === "bar"){
+			objGraph.draw = objD3._createBar(objGraph, i, yAxisIndex);
 		}
 	}
 	
 	if(data){
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
-		console.log("!!!!!!!")
+		//초기에 setData 할 경우
 		this.setData(data);
-		console.log("###")
-		console.log("###")
-		console.log("###")
 	}
 	objD3.addWindowResizeEvent();
 	
@@ -1157,4 +1576,10 @@ NaruSecD3.getColor = function(index) {
 
 NaruSecD3.getCateColor = function(){
 	return ["#3499E5", "#60BA53", "#F0C609", "#F29037", "#D3361E", "#AF5ADD", "#ADACAC", "#40C9FA", "#A9D50B", "#E5E907", "#D26014", "#BD4579", "#8000FF", "#998979", "#013ADF", "#088A4B", "#FEB305", "#B77C24", "#C94949" , "#B4045F", "#6E6E6E"];//파초노주빨보은;
+};
+
+NaruSecD3.rgbToHex = function(rgb){
+	var hex = /^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i.exec(rgb);
+	return hex ? '#' + (1 << 24 | hex[1] << 16 | hex[2] << 8 | hex[3]).toString(16).substr(1) : rgb;
+	
 };
