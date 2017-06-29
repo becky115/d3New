@@ -2949,9 +2949,9 @@ NaruSecD3Js.createTreemap = function(opt, data){
 	var nodeColorField = nodeOpt.colorField;
 	var sort = nodeOpt.sort;
 
-	var root = d3.hierarchy({"values":dataTemp}, function(d) {
-		return d.values;
-	})
+		var root = d3.hierarchy({"values":dataTemp}, function(d) {
+			return d.values;
+		})
 		.sum(function(d){
 			return d[objD3.getY0Value()];
 		})

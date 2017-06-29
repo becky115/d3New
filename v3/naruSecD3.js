@@ -21,8 +21,6 @@ var NaruSecD3Js = function (){
 
 	this.chartId = null;//TODO NEW
 
-
-
 	this.axisX0 = 0; //NEW
 	this.x0Scale = null; //bottom
 	this.x1Scale = null; //top
