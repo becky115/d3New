@@ -65,22 +65,3 @@ svg.naru-d3-svg .node { stroke: #fff; stroke-width: 1.5px;}
 svg.naru-d3-svg .link {stroke: #999; stroke-opacity: .6; fill:none;}
 svg.naru-d3-svg .node text {pointer-events: none; z-index:5; font-size: 10px; stroke:#0078ff;stroke-width: 0.3px;}
 svg.naru-d3-svg .circle-text{font-size: 13px;}
-
-
-/*test*/
-div.naru-d3-wrapper{
-    text-align: center;
-    width:80%;
-    height:1000px;
-    background-color: lightgoldenrodyellow;
-    padding-top:200px;
-}
-
-div.naru-d3-default{
-    border:1px solid gray;
-    width:75%;
-    height:300px;
-    margin:0px auto;
-    position:relative;
-}
-

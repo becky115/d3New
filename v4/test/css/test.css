@@ -1,0 +1,21 @@
+@CHARSET "UTF-8";
+/*test*/
+div.naru-d3-wrapper{
+    text-align: center;
+    width:80%;
+    height:1000px;
+    background-color: lightgoldenrodyellow;
+    padding-top:200px;
+}
+
+div.naru-d3-default{
+    border:1px solid gray;
+    width:75%;
+    height:300px;
+    margin:0px auto;
+    position:relative;
+}
+
+/*graph balloon*/
+.dashboard-balloon-key{clear:both;float:left;text-align:left;}
+.dashboard-balloon-value{float:left;text-align:left;}

@@ -87,7 +87,8 @@ NaruSecD3.prototype = function () {
 				value: null,
 				balloonText: null,
 				node: null,
-				colorField: null
+				colorField: null,
+				guideLine: null
 			}];
 			
 			this.legend = {
@@ -116,7 +117,6 @@ NaruSecD3.prototype = function () {
 					
 					this._setDefaultOption(opt);
 					this._setGraph(graphOpt);
-					
 					
 					if((NaruSecD3.isObject(graphOpt) && graphOpt.type === "treemap")){
 						this.xAxis = null;
@@ -162,25 +162,31 @@ NaruSecD3.prototype = function () {
 				}
 				//	console.log("result", this.xAxis);
 			}else if(NaruSecD3.isObject(xAxisOpt)){
-				_setOption(xAxisOpt);
+				console.log("xAxisOpt", xAxisOpt);
+				_setOption(xAxisOpt, 0);
 			}else{
 				// default xAxis only 1;
 				this.xAxis.push(defaultOpt[0]);
 				//throw new Error("xAxis option error", xAxisOpt);
 			}
 			
-			function _setOption(opt){
-				var tempOpt =  JSON.parse(JSON.stringify(defaultOpt));
+			function _setOption(opt, index){
+				var tempOpt = JSON.parse(JSON.stringify(defaultOpt[index]));
 				
 				if(opt.hasOwnProperty("position")){
 					tempOpt.position = opt.position;
 				}
-				
+
 				if(opt.hasOwnProperty("value")){
 					tempOpt.value = opt.value;
 				}
+
 				
+				//console.log(tempOpt);
+				
+				//return;
 				objThis.xAxis.push(tempOpt);
+				console.log(objThis.xAxis);
 				
 			}
 		},
@@ -191,6 +197,7 @@ NaruSecD3.prototype = function () {
 			var defaultOpt = [];
 			defaultOpt.push(this.yAxis[0]);
 			defaultOpt.push(this.yAxis[1]);
+
 			//console.log("----_setYAxis", defaultOpt);
 			
 			this.yAxis = [];
@@ -202,7 +209,7 @@ NaruSecD3.prototype = function () {
 				}
 				//console.log("result", this.yAxis)
 			}else if(NaruSecD3.isObject(yAxisOpt)){
-				_setOption(yAxisOpt);
+				_setOption(yAxisOpt, 0);
 			}else{
 				// default yAxis only 1;
 				this.yAxis.push(defaultOpt[0]);
@@ -216,6 +223,10 @@ NaruSecD3.prototype = function () {
 				if(opt.hasOwnProperty("position")){
 					tempOpt.position = opt.position;
 				}
+				//
+				// if(opt.hasOwnProperty("value")){ -->graph
+				// 	tempOpt.value = opt.value;
+				// }
 				
 				objThis.yAxis.push(tempOpt);
 			}
@@ -306,20 +317,36 @@ NaruSecD3.prototype = function () {
 		},
 		
 		_setXDomain: function(){
-			
 			if(this.xAxis !== null) {
 				var dateFormat = this.chart.dateFormat;
 				var xValue = this._getXAxisValue();
-				var data = this.chart.data.map(function (d) {
-					//console.log(dateFormat);
-					if (dateFormat) {
-						return NaruSecD3.getTimeDate(dateFormat, d[xValue]);
-					}
-					return d[xValue];
-				});
-				//console.log("_setXDomain", data);
-				this.xAxis[0].scale.domain(data);
+				var chartData = this.chart.data;
+		
+				if(this.xAxis[0].type === "linear"){
+					this.xAxis[0].scale.domain(
+						d3.extent(chartData, function(d) {
+							return d[xValue];
+						})
+					).nice();
+				}else{
+					var data = chartData.map(function (d) {
+						//console.log(dateFormat);
+						if (dateFormat) {
+							return NaruSecD3.getTimeDate(dateFormat, d[xValue]);
+						}
+						return d[xValue];
+					});
+					this.xAxis[0].scale.domain(data);
+				}
 				
+				
+		
+				console.log("_setXDomain", chartData);
+				//
+				
+		
+				
+				console.log("========>>>>>" + this.xAxis[0].scale.domain()[0], this.xAxis[0].scale.domain()[1]);
 			}
 		},
 		
@@ -330,11 +357,9 @@ NaruSecD3.prototype = function () {
 				for(var i=0; i<this.yAxis.length; i++){
 					if(i > 1) break;
 					
-					
 					var maxValue = null;
 					for(var j=0; j<this.graph.length; j++){
 						var graph = this.graph[j];
-						
 						if(graph.yAxisIndex === undefined){
 							graph.yAxisIndex = 0;
 						}
@@ -352,6 +377,7 @@ NaruSecD3.prototype = function () {
 					
 					var yMaxValue = this.getYMaxDomain(maxValue);
 					
+					console.log(i, "yMinValue, yMaxValue", yMinValue, yMaxValue);
 					if(NaruSecD3.isNumber(yMinValue) && NaruSecD3.isNumber(yMaxValue)){
 						//console.log(this.yAxis[i]);
 						
@@ -385,6 +411,11 @@ NaruSecD3.prototype = function () {
 				
 				for(var i=0; i<this.graph.length; i++){
 					//console.log("############ graph draw i", i);
+					
+					// var graphFunction = this.graph[i].setData;
+					// if(graphFunction !== null && typeof graphFunction === "function"){
+					//
+					// }
 					this.graph[i].draw.apply(this, arguments);
 				}
 			}
@@ -456,6 +487,10 @@ NaruSecD3.prototype = function () {
 					tempOpt.colorField = opt.colorField;
 				}
 				
+				if(opt.hasOwnProperty("guideLine")){
+					tempOpt.guideLine = opt.guideLine;
+				}
+				
 				objThis.graph.push(tempOpt);
 				
 			}
@@ -491,20 +526,24 @@ NaruSecD3.prototype = function () {
 			if(NaruSecD3.isArray(this.xAxis)){
 				var xAxis = this.xAxis[0];
 				var chartOpt = this.chart;
+				//console.log(this.xAxis[0]);
 				
 				//set scale
 				if(chartOpt.dateFormat !== null){
-					//xAxis.scale = d3.scaleTime();
+					xAxis.type = "ordinal";
+				}
+				
+				if(xAxis.type === "ordinal"){
 					xAxis.scale = d3.scaleBand();
-				}else if(xAxis.type === "ordinal"){
-					//xAxis.scale = d3.scaleBand();
 				}else if(xAxis.type === "linear"){
-					//xAxis.scale = d3.scaleLinear();
+					xAxis.scale = d3.scaleLinear();
 				}
 				
 				
 				if(xAxis.scale !== null){
 					var xRange = this._getYTickSize();
+					// console.log(xAxis.scale)
+					 console.log("xRange", xRange);
 					xAxis.scale.range([0, xRange]);
 				}
 				
@@ -549,9 +588,9 @@ NaruSecD3.prototype = function () {
 			
 		},
 		
-		_setYTickTextSize: function(){
-		
-		},
+		// _setYTickTextSize: function(){
+		//
+		// },
 		
 		_getYTickTitleSize: function(){
 			
@@ -786,10 +825,10 @@ NaruSecD3.prototype = function () {
 			return this.xAxis[0].value;
 		},
 		
-		_getYAxisValue: function(i){
-			return i > 1 ? this.yAxis[0].value:this.yAxis[i].value;
-		},
-		
+		// _getYAxisValue: function(i){
+		// 	return !NaruSecD3.isNumber(i) || i > 1 ? this.yAxis[0].value:this.yAxis[i].value;
+		// },
+		//
 		//TODO exception
 		_getXAxisScale: function(){
 			return this.xAxis[0].scale;
@@ -797,10 +836,7 @@ NaruSecD3.prototype = function () {
 		
 		//TODO exception
 		_getYAxisScale: function(i){
-			if(NaruSecD3.isValid(this.yAxis[i])){
-			
-			}
-			return this.yAxis[i].scale;
+			return !NaruSecD3.isNumber(i) || i > 1 ? this.yAxis[0].scale:this.yAxis[i].scale;
 		},
 		
 		_createLine: function(objGraph, graphIndex, yAxisIndex){
@@ -912,7 +948,7 @@ NaruSecD3.prototype = function () {
 			return function(){
 				var dateFormat = this.chart.dateFormat;
 				var xValue = this._getXAxisValue();
-				var yValue = objGraph.value;//this._getYAxisValue(index);
+				var yValue = objGraph.value;
 				var color = objGraph.color;
 				var balloonText = objGraph.balloonText;
 				
@@ -925,7 +961,13 @@ NaruSecD3.prototype = function () {
 				
 				var objD3 = this;
 				var chartData = this.chart.data;
-				var objBars = barLayer.selectAll(".bar")
+				var barClassName = "bar";
+				if(chartData.length === 0){
+					barLayer.selectAll("." + barClassName).remove();
+					//	return null;
+				}
+				
+				var objBars = barLayer.selectAll("." + barClassName)
 					.data(chartData);
 				
 				objBars.exit().remove();
@@ -933,9 +975,9 @@ NaruSecD3.prototype = function () {
 				objBars.enter()
 					.append("rect")
 					.merge(objBars)
-					.attr("class", "bar");
+					.attr("class", barClassName);
 				
-				objBars = barLayer.selectAll(".bar");
+				objBars = barLayer.selectAll("." + barClassName);
 				
 				/*TODO
 				radius = parseInt(radius);
@@ -961,7 +1003,7 @@ NaruSecD3.prototype = function () {
 					if(dateFormat !== null){
 						xData = NaruSecD3.getTimeDate(dateFormat, xData);
 					}
-					console.log(xValue, xData, outer, objD3._getXAxisScale()(xData))
+					console.log(xValue, xData, outer, objD3._getXAxisScale()(xData));
 					return objD3._getXAxisScale()(xData) + outer;
 				}).attr("width", barWidth);
 				
@@ -969,7 +1011,7 @@ NaruSecD3.prototype = function () {
 				if(animation && Object.keys(animation).length > 0){
 					//transition
 					objBars
-						.attr("y", function(d){
+						.attr("y", function(){
 							var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
 							return objD3._getYAxisScale(yAxisIndex)(maxDomain);
 						})
@@ -997,28 +1039,25 @@ NaruSecD3.prototype = function () {
 				}
 				
 				if(balloonText !== null && objBars !== null){
-					this._createBalloon(objBars, "rect", balloonText);
-					
 					var balloonOpt = {
 						"type": "treemap",
 						"value": balloonText
 					};
-					this._createBalloon(objTrees, balloonOpt);
+					this._createBalloon(objBars, balloonOpt);
 				}
 				
 			};
 			
 		},
 		
-		_createTreeMap: function(){
+		_createTreeMap: function(objGraph){
 			var drawer = this._getDrawer();
 			var treeLayer = drawer.select(".tree-layer");
 			
-			if(treeLayer.size() === 0){
+			if(treeLayer.size() === 0) {
 				treeLayer = drawer.append("g")
 					.attr("class", "tree-layer");
 			}
-			
 			
 			var treemap = d3.treemap()
 				.tile(d3.treemapResquarify)
@@ -1026,17 +1065,13 @@ NaruSecD3.prototype = function () {
 				.paddingInner(0);
 			
 			return function() {
-				console.log(this.chart);
-				console.log(this.graph);
-				
-				var graphOpt = this.graph[0];
-				var nodeName = graphOpt.node.name;
-				var nodeValue = graphOpt.node.value;
-				var nodeSort = graphOpt.node.sort;
-				var nodeText = graphOpt.node.text;
-				var colorField = graphOpt.colorField;
-				var color = graphOpt.color;
-				var balloonText = graphOpt.balloonText;
+				var nodeName = objGraph.node.name;
+				var nodeValue = objGraph.node.value;
+				var nodeSort = objGraph.node.sort;
+				var nodeText = objGraph.node.text;
+				var colorField = objGraph.colorField;
+				var color = objGraph.color;
+				var balloonText = objGraph.balloonText;
 				
 				
 				var chartData = this.chart.data;
@@ -1056,15 +1091,13 @@ NaruSecD3.prototype = function () {
 				var dataTemp = dataNest.entries(chartData);
 				
 				var root = d3.hierarchy({"values":dataTemp}, function(d) {
-					//console.log("---", d);
 					return d.values;
 				})
 				.sum(function(d){
-					//console.log("sum", d[nodeValue])
 					return d[nodeValue];
 				})
 				.sort(function(a, b) {
-					return nodeSort && nodeSort == "desc" ? (b.value - a.value):(a.value - b.value);
+					return nodeSort && nodeSort === "desc" ? (b.value - a.value):(a.value - b.value);
 				});
 				
 				treemap.size([this._getSvgWidth(), this._getSvgHeight()]);
@@ -1079,7 +1112,7 @@ NaruSecD3.prototype = function () {
 					.merge(objTempTrees)
 					.attr("class", "tree")
 					.attr("fill", function(d) { //tooltip에서 사용
-						if(colorField !== null){
+						if(colorField !== null && NaruSecD3.isValid(d.data[colorField])){
 							color = d.data[colorField];
 						}
 						//console.log(colorField, d.data[colorField]);
@@ -1097,7 +1130,7 @@ NaruSecD3.prototype = function () {
 						return "tree-rect-" + i;
 					})
 					.attr("fill", function(d) {
-						if(colorField !== null){
+						if(colorField !== null && NaruSecD3.isValid(d.data[colorField])){
 							color = d.data[colorField];
 						}
 						//console.log(colorField, d.data[colorField]);
@@ -1106,7 +1139,7 @@ NaruSecD3.prototype = function () {
 					})
 					.attr("class", function(d) {
 						return "node level-" + d.depth;
-					})
+					});
 				
 				objTrees
 					.append("clipPath")
@@ -1127,7 +1160,7 @@ NaruSecD3.prototype = function () {
 				objTrees
 					.attr("transform", function(d) { return "translate(" + d.x0 + "," + d.y0 + ")"; })
 					.select("rect")
-					.attr("width", function(d, i) {
+					.attr("width", function(d) {
 						return d.x1 - d.x0;
 					})
 					.attr("height", function(d) {
@@ -1138,7 +1171,8 @@ NaruSecD3.prototype = function () {
 				var xTspanPos = 2;
 				objTrees
 					.select("text")
-					.call(function(text, width){
+					.call(function(text){
+					//.call(function(text, width){
 						text.each(function (d) {
 							var textTemp = d3.select(this);
 							//console.log("nodeTemp", d);
@@ -1156,9 +1190,7 @@ NaruSecD3.prototype = function () {
 										.attr("x", xTspanPos)
 										.attr("y", function(){
 											//var clientRect = d3.select(this).node().getBoundingClientRect();
-											var yPos = 10 * (j + 1);
-											//console.log(clientRect)
-											return yPos;
+											return 10 * (j + 1);
 										});
 									
 									//console.log(j, tspan.size());
@@ -1238,6 +1270,129 @@ NaruSecD3.prototype = function () {
 			};
 		},
 		
+		
+		_createScatterPlot: function(objGraph){
+			var drawer = this._getDrawer();
+			
+			var scatterLayer = drawer.select(".scatter-layer");
+			if(scatterLayer.size() === 0){
+				scatterLayer = drawer.append("g")
+					.attr("class", "scatter-layer")
+					.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
+			}
+			
+			var guideLine = objGraph.guideLine;
+			if(guideLine !== null){
+				var guideBorder = guideLine.color ? guideLine.color:"#FF0000";
+				drawer.append("line")
+					.attr("class", "guide-line")
+					.attr("stroke-width", 1)
+					.attr("stroke-dasharray", 2)
+					.attr("stroke", guideBorder);
+			}
+			
+			return function(){
+				var colorField = objGraph.colorField;
+				var color = objGraph.color;
+				var xValue = this._getXAxisValue();
+				var yValue = objGraph.value;
+				var balloonText = objGraph.balloonText;
+				
+				var objD3 = this;
+				var chartData = this.chart.data;
+				var scatterClassName = "scatter-circle";
+				if(chartData.length === 0){
+					scatterLayer.selectAll("." + scatterClassName).remove();
+				//	return null;
+				}
+				
+				console.log("guideLine", guideLine);
+				if(guideLine !== null){
+					console.log("###")
+					var guideX = guideLine.value;
+				
+					if(NaruSecD3.isNumber(guideX) && chartData.length > 0){
+						drawer.select(".guide-line").attr("x1", objD3._getXAxisScale()(guideX))
+							.attr("y1", objD3._getYAxisScale()(0))
+							.attr("x2", objD3._getXAxisScale()(guideX))
+							.attr("y2", objD3._getYAxisScale()(0));
+						
+						
+						//TODO ????
+						// drawer.select(".x.axis").selectAll(".tick")
+						// 	.filter(function (d) {
+						// 		return d === 0;
+						// 	})
+						// 	.select("line")
+						// 	.attr("opacity", 0);
+					}
+				}
+				
+				
+				var objCircles = scatterLayer.selectAll("." + scatterClassName)
+					.data(chartData);
+				
+				objCircles.exit().remove();
+				
+				objCircles.enter()
+					.append("circle")
+					.merge(objCircles)
+					.attr("class", scatterClassName);
+				
+				objCircles = scatterLayer.selectAll("." + scatterClassName);
+				
+				objCircles.attr("fill", function(d){
+					//console.log("colorField", colorField, d)
+					if(colorField !== null && NaruSecD3.isValid(d[colorField])){
+						color = d[colorField];
+					}
+					//console.log(colorField, d.data[colorField]);
+					
+					return color;
+				});
+				
+				console.log("xValue", xValue, "yValue", yValue);
+				
+				var minRCircle = 3;
+				var maxRCircle = 10;
+				//objD3.rScale = objD3.circleX0ScaleOutputRange(minRCircle, maxRCircle);
+				
+				var rScale = objD3._getXAxisScale().copy().range([minRCircle, maxRCircle]);
+				objCircles.attr('r', 0)
+					.transition()
+					.duration(100)
+					.attr("r", function(d){
+					//	console.log("rScale(d[xValue])", rScale(d[xValue]));
+						return rScale(d[xValue]);
+						
+					})
+					.attr("cx", function(d) {
+						//console.log("_getXAxisScale", d[xValue], objD3._getXAxisScale()(d[xValue]));
+						return objD3._getXAxisScale()(d[xValue]);
+					})
+					.attr("cy", function(d) {
+						//console.log("_getYAxisScale", d[yValue], objD3._getYAxisScale()(d[yValue]));
+						return objD3._getYAxisScale()(d[yValue]);
+					});
+				
+				
+//				console.log(balloonText, objCircles);
+				if(balloonText !== null && objCircles !== null){
+					var balloonOpt = {
+						"type": "circle",
+						"value": balloonText
+					};
+					this._createBalloon(objCircles, balloonOpt);
+				}
+			
+			};
+			
+			
+			
+			
+			
+		},
+		
 		_getGraphColor: function(color, index, gradientFlag){
 			//console.log("_getGraphColor", color, index, gradientFlag);
 			gradientFlag = false;
@@ -1292,8 +1447,8 @@ NaruSecD3.prototype = function () {
 			
 			var type = optBalloon.type;
 			var fmtText = optBalloon.value;
-			var dateFormat = optBalloon.dateFormat; //date origin format
-			var timeFormat = optBalloon.timeFormat; // change format
+			//var dateFormat = optBalloon.dateFormat; //date origin format
+			//var timeFormat = optBalloon.timeFormat; // change format
 			var regexp = /[\[]{2}([^\]]+)[\]]{2}/g;
 			
 			objD3._getDrawer().on("mouseleave", function(){
@@ -1308,12 +1463,12 @@ NaruSecD3.prototype = function () {
 			 */
 			objOver.on("mousemove.one", function() {//툴팁 좌표이동
 				var clientPos = d3.select("#"+chartId).select("svg").node().getBoundingClientRect();
-				console.log(d3.select(divToolTip))
+				console.log(d3.select(divToolTip));
 				objD3.hideToolTip(divToolTip);
 				
 				var arrowLine = divToolTip.select(".arrow-line");
-				var arrowClientRect = arrowLine.node().getBoundingClientRect()
-				console.log("arrowClientRect", arrowClientRect.width, arrowClientRect.height)
+				var arrowClientRect = arrowLine.node().getBoundingClientRect();
+				console.log("arrowClientRect", arrowClientRect.width, arrowClientRect.height);
 				var toolTipContentWidth = parseInt(divToolTip.style("width"), 10);
 				var toolTipContentHeight = parseInt(divToolTip.style("height"), 10);
 				var toolTipArrowWidth = parseInt(arrowClientRect.width, 10) / 2;
@@ -1386,8 +1541,7 @@ NaruSecD3.prototype = function () {
 						divToolTip.classed("top", true);
 					}
 				}
-				
-				var arrowLine = divToolTip.select(".arrow-line");
+	
 				var borderColor = divToolTip.style("border-color");
 				var heightMarginSize = 2;
 				var widthMarginSize = 5;
@@ -1458,7 +1612,7 @@ NaruSecD3.prototype = function () {
 				return borderColor;
 			}
 			
-			if(type == "rect" || type == "pie"){
+			if(type === "rect" || type === "pie"){
 				objOver.on("mouseover.one", function(d, i){
 					var obj = d3.select(this);
 					var color = d.color;
@@ -1471,17 +1625,21 @@ NaruSecD3.prototype = function () {
 					}
 					mouseOverToolTip(color, i, d);
 				});
-			}else if(type == "circle"){
+			}else if(type === "circle"){
 				objOver.on("mouseout.one", function(){
 					var obj = d3.select(this);
-					if(objD3.rScale){
-						obj.transition().duration(500)
-							.attr("r", function(d){
-								return objD3.rScale(d[objD3.getX0Value()]);
-							});
-					}else{
-						obj.transition().duration(500).attr("r", 2);
-					}
+					// if(objD3.rScale){
+					// 	obj.transition().duration(500)
+					// 		.attr("r", function(d){
+					// 			return objD3.rScale(d[objD3.getX0Value()]);
+					// 		});
+					// }else{
+					// 	obj.transition().duration(500).attr("r", 2);
+					// }
+					
+					var rSize = obj.attr("r");
+					if(rSize === undefined) rSize = 2;
+					obj.transition().duration(500).attr("r", rSize - 1);
 				})
 				.on("mouseover.one", function(d, i){
 					var obj = d3.select(this);
@@ -1489,16 +1647,20 @@ NaruSecD3.prototype = function () {
 					
 					mouseOverToolTip(color, i, d);
 					
-					if(objD3.rScale){
-						obj.transition().duration(100)
-							.attr("r", function(d){
-								return objD3.rScale(d[objD3.getX0Value()]) + 1;
-							});
-					}else{
-						obj.transition().duration(100).attr("r", 3);
-					}
+					// if(objD3.rScale){
+					// 	obj.transition().duration(100)
+					// 		.attr("r", function(d){
+					// 			return objD3.rScale(d[objD3.getX0Value()]) + 1;
+					// 		});
+					// }else{
+					// 	obj.transition().duration(100).attr("r", 3);
+					// }
+					
+					var rSize = obj.attr("r");
+					if(rSize === undefined) rSize = 3;
+					obj.transition().duration(500).attr("r", rSize + 1);
 				});
-			}else if(type == "force"){
+			}else if(type === "force"){
 				objOver.on("mouseout.one", function(){
 					var obj = d3.select(this);
 					obj.transition().duration(500).attr("r", 2);
@@ -1516,7 +1678,7 @@ NaruSecD3.prototype = function () {
 					mouseOverToolTip(color, i, d);
 					obj.transition().duration(100).attr("r", 3);
 				});
-			}else if(type == "treemap"){
+			}else if(type === "treemap"){
 				//console.log("_createBalloon", type);
 				objOver.on("mouseover.one", function(d, i){
 					var obj = d3.select(this);
@@ -1576,7 +1738,7 @@ NaruSecD3.prototype = function () {
 				var limitMinY = 0;
 				var limitMaxY = clientPos.height - toolTipHeight;
 				
-				console.log("toolTipHeight", toolTipHeight)
+				console.log("toolTipHeight", toolTipHeight);
 				
 				var posX = d3.event.clientX - clientPos.left - (toolTipWidth / 2);
 				var posY = d3.event.clientY - clientPos.top - (toolTipHeight);
@@ -1929,8 +2091,8 @@ NaruSecD3.prototype = function () {
 			
 			var objTSpan = textTemp.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
 			var dateTemp = NaruSecD3.getTimeDate(x0DateFormat, word);
-			var wordText = word;
-			var replaceText = wordText;
+			//var wordText = word;
+			var replaceText = word;
 			
 			if(checkTickDateLength(x0DateFormat, width)){
 				var parentNode = objTSpan.node().parentNode;
@@ -1977,7 +2139,7 @@ NaruSecD3.prototype = function () {
 			}
 			
 			return beforeDate;
-		},
+		}
 		
 	};
 }();
@@ -2002,6 +2164,9 @@ NaruSecD3.createGraph = function(opt, data){
 			objGraph.draw = objD3._createBar(objGraph, i, yAxisIndex);
 		}else if(i === 0 && objGraph.type === "treemap"){
 			objGraph.draw = objD3._createTreeMap(objGraph);
+			break;
+		}else if(i === 0 && objGraph.type === "scatter"){
+			objGraph.draw = objD3._createScatterPlot(objGraph);
 			break;
 		}
 	}

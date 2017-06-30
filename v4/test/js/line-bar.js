@@ -32,8 +32,8 @@ function test(){
 		},{
 			"value":"count2",
 			"title":"title2"
-		}]
-		, "yAxis":[{
+		}],
+		"yAxis":[{
 			"title":"title1"
 		}]
 		, "balloon":{

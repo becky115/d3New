@@ -24,7 +24,7 @@ div.toolTip {opacity:0;pointer-events: none; position: absolute;
 text-align: center; min-width: 60px;width:auto;height:auto;padding: 3px 5px;
 font: 12px sans-serif; background: #fff; border: 0px; border-radius: 10px; z-index:100; 
 display: block; -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
--mox-box-shadow: 4px 4px 4px 10px rgba(0, 0, 0, 0.4);box-shadow: 4px 4px 10px rbga(0, 0, 0, 0.4);}
+-mox-box-shadow: 4px 4px 4px 10px rgba(0, 0, 0, 0.4);box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);}
 svg{ position: absolute; left:0px; top:0px; font: 10px sans-serif;}
 svg .axis path{fill: none; stroke: #D8D8D8; stroke-width:1; shape-rendering: crispEdges;}
 svg .axis line{fill: none; stroke: #D8D8D8; stroke-width:1; shape-rendering: crispEdges;}
