@@ -88,7 +88,13 @@ NaruSecD3.prototype = function () {
 				balloonText: null,
 				node: null,
 				colorField: null,
-				guideLine: null
+				guideLine: null,
+				startField: null,//duration
+				endField: null, //duration
+				minStart: null, //duration
+				maxEnd: null, //duration
+				innerColor: null, //duration
+				outerColor: null,//duration
 			}];
 			
 			this.legend = {
@@ -98,7 +104,7 @@ NaruSecD3.prototype = function () {
 			};
 			
 			this.balloon = {
-				radius:0
+				radius: 0
 			};
 		},
 		
@@ -126,7 +132,6 @@ NaruSecD3.prototype = function () {
 					this._setXAxis(xAxisOpt);
 					this._setYAxis(yAxisOpt);
 					
-					
 					this._setBalloon(balloonOpt);
 				}
 				
@@ -144,6 +149,10 @@ NaruSecD3.prototype = function () {
 					//max 5;
 					var maxRadius = 5;
 					this.balloon.radius = parseInt(balloonOpt.radius) > maxRadius ? maxRadius:parseInt(balloonOpt.radius);
+				}
+				
+				if(balloonOpt.hasOwnProperty("dateFormat")){
+					this.balloon.dateFormat = balloonOpt.dateFormat;
 				}
 			}
 		},
@@ -166,6 +175,7 @@ NaruSecD3.prototype = function () {
 				_setOption(xAxisOpt, 0);
 			}else{
 				// default xAxis only 1;
+				//console.log("###############", defaultOpt[0]);
 				this.xAxis.push(defaultOpt[0]);
 				//throw new Error("xAxis option error", xAxisOpt);
 			}
@@ -176,17 +186,12 @@ NaruSecD3.prototype = function () {
 				if(opt.hasOwnProperty("position")){
 					tempOpt.position = opt.position;
 				}
-
+				
 				if(opt.hasOwnProperty("value")){
 					tempOpt.value = opt.value;
 				}
-
 				
-				//console.log(tempOpt);
-				
-				//return;
 				objThis.xAxis.push(tempOpt);
-				console.log(objThis.xAxis);
 				
 			}
 		},
@@ -197,7 +202,7 @@ NaruSecD3.prototype = function () {
 			var defaultOpt = [];
 			defaultOpt.push(this.yAxis[0]);
 			defaultOpt.push(this.yAxis[1]);
-
+			
 			//console.log("----_setYAxis", defaultOpt);
 			
 			this.yAxis = [];
@@ -235,7 +240,7 @@ NaruSecD3.prototype = function () {
 		_drawXAxis: function(){
 			if(this.xAxis === null) return;
 			var xAxis = this.xAxis[0];
-			if(xAxis.axis){
+			if(xAxis && xAxis.axis !== null){
 				var className = xAxis.className.replace(/\s/g, ".");
 				
 				var transX = this._getXPosition();
@@ -258,25 +263,27 @@ NaruSecD3.prototype = function () {
 				if(i > 1) break;
 				
 				var yAxis = this.yAxis[i];
-				//console.log("drawy....", yAxis);
-				var className = yAxis.className.replace(/\s/g, ".");
-				
-				if(i === 0){
-					yAxis.axis
-						.tickSize(-1  * (this._getYTickSize() ))
-						.tickPadding(7);
+				if(yAxis && yAxis.axis !== null) {
+					//console.log("drawy....", yAxis);
+					var className = yAxis.className.replace(/\s/g, ".");
+					if(i === 0){
+						yAxis.axis
+							.tickSize(-1  * (this._getYTickSize() ))
+							.tickPadding(7);
+					}
+					
+					var transX = this._getXPosition();
+					var transY = 0;
+					
+					this._getDrawer().select("."+className+".mark")
+						.attr("transform", "translate("+ transX +"," + transY + ")")
+						.call(yAxis.axisMark.tickFormat(""));
+					
+					this._getDrawer().select("."+className)
+						.attr("transform", "translate("+ transX +"," + transY + ")")
+						.call(yAxis.axis);
 				}
 				
-				var transX = this._getXPosition();
-				var transY = 0;
-				
-				this._getDrawer().select("."+className+".mark")
-					.attr("transform", "translate("+ transX +"," + transY + ")")
-					.call(yAxis.axisMark.tickFormat(""));
-				
-				this._getDrawer().select("."+className)
-					.attr("transform", "translate("+ transX +"," + transY + ")")
-					.call(yAxis.axis);
 				
 			}
 			
@@ -320,33 +327,38 @@ NaruSecD3.prototype = function () {
 			if(this.xAxis !== null) {
 				var dateFormat = this.chart.dateFormat;
 				var xValue = this._getXAxisValue();
+				console.log("xValue", xValue);
 				var chartData = this.chart.data;
-		
-				if(this.xAxis[0].type === "linear"){
-					this.xAxis[0].scale.domain(
-						d3.extent(chartData, function(d) {
+				
+				if(NaruSecD3.isValid(xValue)){
+					if(this.xAxis[0].type === "linear"){
+						this.xAxis[0].scale.domain(
+							d3.extent(chartData, function(d) {
+								return d[xValue];
+							})
+						).nice();
+					}else{
+						var data = chartData.map(function (d) {
+							//console.log(dateFormat);
+							if (dateFormat) {
+								return NaruSecD3.getTimeDate(dateFormat, d[xValue]);
+							}
 							return d[xValue];
-						})
-					).nice();
-				}else{
-					var data = chartData.map(function (d) {
-						//console.log(dateFormat);
-						if (dateFormat) {
-							return NaruSecD3.getTimeDate(dateFormat, d[xValue]);
-						}
-						return d[xValue];
-					});
-					this.xAxis[0].scale.domain(data);
+						});
+						this.xAxis[0].scale.domain(data);
+					}
+					
 				}
 				
 				
-		
-				console.log("_setXDomain", chartData);
+				// console.log(this.xAxis[0].scale.domain());
 				//
-				
-		
-				
-				console.log("========>>>>>" + this.xAxis[0].scale.domain()[0], this.xAxis[0].scale.domain()[1]);
+				// console.log("_setXDomain", chartData);
+				// //
+				//
+				//
+				//
+				// console.log("========>>>>>" + this.xAxis[0].scale.domain()[0], this.xAxis[0].scale.domain()[1]);
 			}
 		},
 		
@@ -375,9 +387,10 @@ NaruSecD3.prototype = function () {
 						}
 					}
 					
+					console.log("maxValue", maxValue)
 					var yMaxValue = this.getYMaxDomain(maxValue);
 					
-					console.log(i, "yMinValue, yMaxValue", yMinValue, yMaxValue);
+					console.log(i, "yMinValue yMaxValue", yMinValue, yMaxValue);
 					if(NaruSecD3.isNumber(yMinValue) && NaruSecD3.isNumber(yMaxValue)){
 						//console.log(this.yAxis[i]);
 						
@@ -404,11 +417,9 @@ NaruSecD3.prototype = function () {
 				
 				this._setXDomain();//set x domain
 				this._setYDomain();//set y domain
+			
 				
-				this._drawXAxis();
-				this._drawYAxis();
-				
-				
+				console.log()
 				for(var i=0; i<this.graph.length; i++){
 					//console.log("############ graph draw i", i);
 					
@@ -418,6 +429,10 @@ NaruSecD3.prototype = function () {
 					// }
 					this.graph[i].draw.apply(this, arguments);
 				}
+				
+				
+				this._drawXAxis();
+				this._drawYAxis();
 			}
 		},
 		
@@ -462,6 +477,7 @@ NaruSecD3.prototype = function () {
 				//console.log("defaultOpt", defaultOpt)
 				var tempOpt = JSON.parse(JSON.stringify(defaultOpt));
 				
+				
 				if(opt.hasOwnProperty("type")){
 					tempOpt.type = opt.type;
 				}
@@ -491,6 +507,33 @@ NaruSecD3.prototype = function () {
 					tempOpt.guideLine = opt.guideLine;
 				}
 				
+				//TODO change
+				if(opt.hasOwnProperty("startField")){
+					tempOpt.startField = opt.startField;
+				}
+				if(opt.hasOwnProperty("endField")){
+					tempOpt.endField = opt.endField;
+				}
+				if(opt.hasOwnProperty("guideLine")){
+					tempOpt.guideLine = opt.guideLine;
+				}
+				if(opt.hasOwnProperty("minStart")){
+					tempOpt.minStart = opt.minStart;
+				}
+				if(opt.hasOwnProperty("maxEnd")){
+					tempOpt.maxEnd = opt.maxEnd;
+				}
+				if(opt.hasOwnProperty("innerColor")){
+					tempOpt.innerColor = opt.innerColor;
+				}
+				if(opt.hasOwnProperty("outerColor")){
+					tempOpt.outerColor = opt.outerColor;
+				}
+				
+				
+				
+				
+				
 				objThis.graph.push(tempOpt);
 				
 			}
@@ -511,17 +554,16 @@ NaruSecD3.prototype = function () {
 				d3.timeSecond(date) < date ?
 					formatMillisecond : d3.timeMinute(date) < date ?
 					formatSecond : d3.timeHour(date) < date ?
-					formatMinute : d3.timeDay(date) < date ?
-					formatHour : d3.timeMonth(date) < date ?
-					(d3.timeWeek(date) < date ?  formatDay : formatWeek) : d3.timeYear(date) < date ?
-					formatMonth : formatYear
+						formatMinute : d3.timeDay(date) < date ?
+							formatHour : d3.timeMonth(date) < date ?
+								(d3.timeWeek(date) < date ?  formatDay : formatWeek) : d3.timeYear(date) < date ?
+									formatMonth : formatYear
 			)(date);
 		},
 		
 		_createXAxis: function(){
 			//position: "bottom",
 			//type: "linear"
-			
 			console.log("===", this.xAxis, NaruSecD3.isArray(this.xAxis));
 			if(NaruSecD3.isArray(this.xAxis)){
 				var xAxis = this.xAxis[0];
@@ -537,13 +579,15 @@ NaruSecD3.prototype = function () {
 					xAxis.scale = d3.scaleBand();
 				}else if(xAxis.type === "linear"){
 					xAxis.scale = d3.scaleLinear();
+				}else if(xAxis.type === "time"){
+					xAxis.scale = d3.scaleTime();
 				}
 				
 				
 				if(xAxis.scale !== null){
 					var xRange = this._getYTickSize();
 					// console.log(xAxis.scale)
-					 console.log("xRange", xRange);
+					console.log("xRange", xRange);
 					xAxis.scale.range([0, xRange]);
 				}
 				
@@ -577,11 +621,11 @@ NaruSecD3.prototype = function () {
 				var xAxisClass = xAxis.className;
 				drawer.append("g")
 					.attr("class", xAxisClass);
-					//.attr("transform", "translate(0," + this._getSvgHeight() + ")");
+				//.attr("transform", "translate(0," + this._getSvgHeight() + ")");
 				
 				drawer.append("g")
 					.attr("class", xAxisClass+" mark")
-					//.attr("transform", "translate(0," + this._getSvgHeight() + ")")
+				//.attr("transform", "translate(0," + this._getSvgHeight() + ")")
 				
 				
 			}
@@ -655,10 +699,10 @@ NaruSecD3.prototype = function () {
 			//return this.getSvgHeight() - this.getLegendHeight();
 			
 			var height = this._getSvgHeight() -
-					(this._getXTickTitleSize()
-					 + this._getLegendHeight()
-					 + this.chart.margin.top
-					+ this.chart.margin.bottom);
+				(this._getXTickTitleSize()
+				+ this._getLegendHeight()
+				+ this.chart.margin.top
+				+ this.chart.margin.bottom);
 			
 			return -1 * height;
 		},
@@ -708,11 +752,11 @@ NaruSecD3.prototype = function () {
 					}else if(yAxis.position === "bottom"){
 						yAxis.axis = d3.axisBottom(yAxis.scale);
 						yAxis.axisMark = d3.axisBottom(yAxis.scale);
+					}else if(NaruSecD3.isValid(yAxis.position)){
+						yAxis.axis = d3.axisBottom(yAxis.scale);
+						yAxis.axisMark = d3.axisBottom(yAxis.scale);
 					}
 					
-					if(yAxis.axis === null){
-						throw new Error("error y axis");
-					}
 					
 					//yAxis.axis.tickSize(-this._getXTickSize());
 					
@@ -841,16 +885,18 @@ NaruSecD3.prototype = function () {
 		
 		_createLine: function(objGraph, graphIndex, yAxisIndex){
 			//console.log("_createLine    graphIndex", graphIndex, "yAxisIndex", yAxisIndex);
-			var drawer = this._getDrawer();
-			var lineLayer = drawer.select(".line-layer.g_"+graphIndex);
-			
-			if(lineLayer.size() === 0){
-				lineLayer = drawer.append("g")
-					.attr("class", "line-layer g_"+graphIndex)
-					.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
-			}
 			
 			return function(){
+				var drawer = this._getDrawer();
+				var lineLayer = drawer.select(".line-layer.g_"+graphIndex);
+				
+				if(lineLayer.size() === 0){
+					lineLayer = drawer.append("g")
+						.attr("class", "line-layer g_"+graphIndex)
+						.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
+				}
+				
+				
 				var dateFormat = this.chart.dateFormat;
 				var xValue = this._getXAxisValue();
 				var yValue = objGraph.value;//this._getYAxisValue(index);
@@ -936,16 +982,18 @@ NaruSecD3.prototype = function () {
 		},
 		
 		_createBar: function(objGraph, graphIndex, yAxisIndex){
-			var drawer = this._getDrawer();
-			var barLayer = drawer.select(".bar-layer.g_"+graphIndex);
 			
-			if(barLayer.size() === 0){
-				barLayer = drawer.append("g")
-					.attr("class", "bar-layer g_"+graphIndex)
-					.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
-			}
 			
 			return function(){
+				var drawer = this._getDrawer();
+				var barLayer = drawer.select(".bar-layer.g_"+graphIndex);
+				
+				if(barLayer.size() === 0){
+					barLayer = drawer.append("g")
+						.attr("class", "bar-layer g_"+graphIndex)
+						.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
+				}
+				
 				var dateFormat = this.chart.dateFormat;
 				var xValue = this._getXAxisValue();
 				var yValue = objGraph.value;
@@ -980,12 +1028,12 @@ NaruSecD3.prototype = function () {
 				objBars = barLayer.selectAll("." + barClassName);
 				
 				/*TODO
-				radius = parseInt(radius);
-				if(!isNaN(radius)){
-					objBars.attr("rx", radius)
-						.attr("ry", radius);
-				}
-				*/
+				 radius = parseInt(radius);
+				 if(!isNaN(radius)){
+				 objBars.attr("rx", radius)
+				 .attr("ry", radius);
+				 }
+				 */
 				
 				// objBars.attr("fill", function(d, i) {
 				// 	var color = d.color;
@@ -1010,32 +1058,29 @@ NaruSecD3.prototype = function () {
 				//console.log("animation", animation, Object.keys(animation).length)
 				if(animation && Object.keys(animation).length > 0){
 					//transition
+					var yScale = objD3._getYAxisScale(yAxisIndex);
+					var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
 					objBars
 						.attr("y", function(){
-							var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
-							return objD3._getYAxisScale(yAxisIndex)(maxDomain);
+							return yScale(maxDomain);
 						})
 						.attr("height", 0)
 						.transition().duration(isNaN(parseInt(animation.duration)) ? 1000:parseInt(animation.duration))
 						.attr("y", function(d){
-							var yData = d[yValue];
-							return objD3._getYAxisScale(yAxisIndex)(yData);
+							return yScale(d[yValue]);
 						})
 						.attr("height", function(d){
-							var yData = d[yValue];
-							var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
-							return objD3._getYAxisScale(yAxisIndex)(maxDomain) - objD3._getYAxisScale(yAxisIndex)(yData);
+							return yScale(maxDomain) - yScale(d[yValue]);
 						});
 				}else{
 					objBars.attr("y", function(d){
 						var yData = d[yValue];
-						return objD3._getYAxisScale(yAxisIndex)(yData);
+						return yScale(yData);
 					})
-					.attr("height", function(d){
-						var yData = d[yValue];
-						var maxDomain = objD3._getYAxisScale(yAxisIndex).domain()[0];
-						return objD3._getYAxisScale(yAxisIndex)(maxDomain) - objD3._getYAxisScale(yAxisIndex)(yData);
-					});
+						.attr("height", function(d){
+							var yData = d[yValue];
+							return yScale(maxDomain) - yScale(yData);
+						});
 				}
 				
 				if(balloonText !== null && objBars !== null){
@@ -1051,20 +1096,22 @@ NaruSecD3.prototype = function () {
 		},
 		
 		_createTreeMap: function(objGraph){
-			var drawer = this._getDrawer();
-			var treeLayer = drawer.select(".tree-layer");
 			
-			if(treeLayer.size() === 0) {
-				treeLayer = drawer.append("g")
-					.attr("class", "tree-layer");
-			}
-			
-			var treemap = d3.treemap()
-				.tile(d3.treemapResquarify)
-				.round(true)
-				.paddingInner(0);
 			
 			return function() {
+				var drawer = this._getDrawer();
+				var treeLayer = drawer.select(".tree-layer");
+				
+				if(treeLayer.size() === 0) {
+					treeLayer = drawer.append("g")
+						.attr("class", "tree-layer");
+				}
+				
+				var treemap = d3.treemap()
+					.tile(d3.treemapResquarify)
+					.round(true)
+					.paddingInner(0);
+				
 				var nodeName = objGraph.node.name;
 				var nodeValue = objGraph.node.value;
 				var nodeSort = objGraph.node.sort;
@@ -1093,12 +1140,12 @@ NaruSecD3.prototype = function () {
 				var root = d3.hierarchy({"values":dataTemp}, function(d) {
 					return d.values;
 				})
-				.sum(function(d){
-					return d[nodeValue];
-				})
-				.sort(function(a, b) {
-					return nodeSort && nodeSort === "desc" ? (b.value - a.value):(a.value - b.value);
-				});
+					.sum(function(d){
+						return d[nodeValue];
+					})
+					.sort(function(a, b) {
+						return nodeSort && nodeSort === "desc" ? (b.value - a.value):(a.value - b.value);
+					});
 				
 				treemap.size([this._getSvgWidth(), this._getSvgHeight()]);
 				//var treeData = treemap(root).leaves();
@@ -1172,7 +1219,7 @@ NaruSecD3.prototype = function () {
 				objTrees
 					.select("text")
 					.call(function(text){
-					//.call(function(text, width){
+						//.call(function(text, width){
 						text.each(function (d) {
 							var textTemp = d3.select(this);
 							//console.log("nodeTemp", d);
@@ -1195,8 +1242,8 @@ NaruSecD3.prototype = function () {
 									
 									//console.log(j, tspan.size());
 									firstOpacity = setTspanStyle(tspan, rectWidth, rectHeight, firstOpacity);
-										
-								
+									
+									
 								}
 								
 							}else{
@@ -1213,15 +1260,15 @@ NaruSecD3.prototype = function () {
 						});
 					});
 				
-					function setTspanStyle(tspan, rectWidth, rectHeight, firstOpacity){
-						tspan.attr("fill", function(d) {
-							//console.log("fill1", d.data)
-							if(colorField !== null){
-								color = d.data[colorField];
-							}
-							
-							return "#000";//d3.rgb(color).darker(0.9)
-						})
+				function setTspanStyle(tspan, rectWidth, rectHeight, firstOpacity){
+					tspan.attr("fill", function(d) {
+						//console.log("fill1", d.data)
+						if(colorField !== null){
+							color = d.data[colorField];
+						}
+						
+						return "#000";//d3.rgb(color).darker(0.9)
+					})
 						.style("opacity", function(){
 							// var test = d3.select(this).node().parentNode;
 							// var test2 = d3.select(test).node().parentNode;
@@ -1250,13 +1297,13 @@ NaruSecD3.prototype = function () {
 								return 1;
 							}
 						});
-						
-						return firstOpacity;
-						// if(rectWidth < nodeTemp.node().getComputedTextLength()){
-						// 	nodeTemp.style("opacity", 0);
-						// }
-						
-					}
+					
+					return firstOpacity;
+					// if(rectWidth < nodeTemp.node().getComputedTextLength()){
+					// 	nodeTemp.style("opacity", 0);
+					// }
+					
+				}
 				
 				console.log("balloonText", balloonText);
 				if(balloonText !== null && objTrees !== null){
@@ -1272,26 +1319,30 @@ NaruSecD3.prototype = function () {
 		
 		
 		_createScatterPlot: function(objGraph){
-			var drawer = this._getDrawer();
 			
-			var scatterLayer = drawer.select(".scatter-layer");
-			if(scatterLayer.size() === 0){
-				scatterLayer = drawer.append("g")
-					.attr("class", "scatter-layer")
-					.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
-			}
-			
-			var guideLine = objGraph.guideLine;
-			if(guideLine !== null){
-				var guideBorder = guideLine.color ? guideLine.color:"#FF0000";
-				drawer.append("line")
-					.attr("class", "guide-line")
-					.attr("stroke-width", 1)
-					.attr("stroke-dasharray", 2)
-					.attr("stroke", guideBorder);
-			}
 			
 			return function(){
+				var drawer = this._getDrawer();
+				
+				var guideLine = objGraph.guideLine;
+				if(guideLine !== null){
+					var guideBorder = guideLine.color ? guideLine.color:"#FF0000";
+					drawer.append("line")
+						.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")")
+						.attr("class", "guide-line")
+						.attr("stroke-width", 1)
+						.attr("stroke-dasharray", 2)
+						.attr("stroke", guideBorder);
+				}
+				
+				var scatterLayer = drawer.select(".scatter-layer");
+				if(scatterLayer.size() === 0){
+					scatterLayer = drawer.append("g")
+						.attr("class", "scatter-layer")
+						.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
+				}
+				
+				
 				var colorField = objGraph.colorField;
 				var color = objGraph.color;
 				var xValue = this._getXAxisValue();
@@ -1303,19 +1354,18 @@ NaruSecD3.prototype = function () {
 				var scatterClassName = "scatter-circle";
 				if(chartData.length === 0){
 					scatterLayer.selectAll("." + scatterClassName).remove();
-				//	return null;
+					//	return null;
 				}
 				
 				console.log("guideLine", guideLine);
 				if(guideLine !== null){
-					console.log("###")
 					var guideX = guideLine.value;
-				
+					
 					if(NaruSecD3.isNumber(guideX) && chartData.length > 0){
 						drawer.select(".guide-line").attr("x1", objD3._getXAxisScale()(guideX))
 							.attr("y1", objD3._getYAxisScale()(0))
 							.attr("x2", objD3._getXAxisScale()(guideX))
-							.attr("y2", objD3._getYAxisScale()(0));
+							.attr("y2", objD3._getYAxisScale()[0]);
 						
 						
 						//TODO ????
@@ -1362,7 +1412,7 @@ NaruSecD3.prototype = function () {
 					.transition()
 					.duration(100)
 					.attr("r", function(d){
-					//	console.log("rScale(d[xValue])", rScale(d[xValue]));
+						//	console.log("rScale(d[xValue])", rScale(d[xValue]));
 						return rScale(d[xValue]);
 						
 					})
@@ -1374,8 +1424,8 @@ NaruSecD3.prototype = function () {
 						//console.log("_getYAxisScale", d[yValue], objD3._getYAxisScale()(d[yValue]));
 						return objD3._getYAxisScale()(d[yValue]);
 					});
-				
-				
+
+
 //				console.log(balloonText, objCircles);
 				if(balloonText !== null && objCircles !== null){
 					var balloonOpt = {
@@ -1384,11 +1434,157 @@ NaruSecD3.prototype = function () {
 					};
 					this._createBalloon(objCircles, balloonOpt);
 				}
-			
+				
 			};
+		},
+		
+		_createDuration: function(objGraph){
 			
 			
 			
+			return function(){
+				var outerClassName = "background";
+				var drawer = this._getDrawer();
+				var durationLayer = drawer.select(".duration-layer");
+				if(durationLayer.size() === 0){
+					durationLayer = drawer.append("g")
+						.attr("class", "duration-layer")
+						.attr("transform", "translate("+this._getYTickTitleSize()+"," + 0 + ")");
+					
+					durationLayer.append("g")
+						.append("rect")
+						.attr("class", outerClassName)
+				}
+				
+				
+				
+				var objD3 = this;
+				var startField = objGraph.startField;
+				var endField = objGraph.endField;
+				
+				
+				var minStart = objGraph.minStart;
+				//NaruSecD3.isValid(objGraph.minStart) ? new Date(objGraph.minStart):objD3._getXAxisScale().domain()[0]; //null이면 data min값
+				var maxEnd = objGraph.maxEnd;
+				
+				console.log("init", minStart, maxEnd);
+				
+				
+				
+				//NaruSecD3.isValid(objGraph.maxEnd) ? new Date(objGraph.maxEnd):objD3._getXAxisScale().domain()[1];// null이면 data max값
+				var innerColor = NaruSecD3.isValid(objGraph.innerColor) ? objGraph.innerColor:"#DF0101";
+				var outerColor = NaruSecD3.isValid(objGraph.outerColor) ? objGraph.outerColor:"#BCBCBC";
+				var balloonText = objGraph.balloonText;
+				var innerClassName = "bar";
+				
+				
+				//#DF0101
+				var chartData = this.chart.data;
+				
+				
+				var outerRect = durationLayer.selectAll("." + outerClassName);
+				var innerRect = durationLayer.selectAll("." + innerClassName);
+				if(chartData.length === 0){
+					outerRect.attr("fill-opacity", 0);
+					innerRect.remove();
+				}else{
+					outerRect.attr("fill-opacity", 0.7);
+				}
+				//domain.....
+				
+				var rectHeight = 30;
+				var xScale = objD3._getXAxisScale();
+				
+				var minDate = d3.min(chartData, function(d){
+					return d[startField];
+				});
+				
+				var maxDate = d3.max(chartData, function(d){
+					return d[endField];
+				});
+				minStart = NaruSecD3.isValid(minStart) ? new Date(minStart):minDate;
+				maxEnd = NaruSecD3.isValid(maxEnd) ? new Date(maxEnd):maxDate;
+				
+				console.log("minStart", minStart, "maxEnd", maxEnd);
+				
+				
+				xScale.domain([minStart, maxEnd]);
+				console.log("xScale.domain", xScale.domain()[0], xScale.domain);
+				
+				
+				var xScale = objD3._getXAxisScale();
+				var yScale = objD3._getYAxisScale();
+				var yMaxDomain = yScale.domain()[1];
+				
+				outerRect
+					.attr("fill", function(){
+						//var obj = d3.select(this);
+						//var parentNode = obj.node().parentNode;
+						return outerColor;
+					})
+					.attr("x", xScale(minStart))
+					.attr("y", yScale(yMaxDomain))
+					.attr("width", objD3._getYTickSize())
+					.attr("height", rectHeight);
+				
+				
+				var objRects = innerRect.data(chartData);
+				
+				objRects.exit().remove();
+				
+				objRects.enter()
+					.append("rect")
+					.merge(objRects)
+					.attr("class", innerClassName);
+				
+				objRects = durationLayer.selectAll("." + innerClassName); //research
+				
+				
+				objRects
+					.attr("fill", function(){
+						//var obj = d3.select(this);
+						//var parentNode = obj.node().parentNode;
+						//"url(#"+objD3.getGradientColor(innerColor)+")";
+						return innerColor;
+					})
+					.attr("x", function(d){
+						var startData = new Date(d[startField]);
+						var minData = minStart;
+						startData = minData.getTime() > startData.getTime() ? minData:startData;
+						
+						return objD3._getXAxisScale()(startData);
+					})
+					.attr("y", function(){
+						return yScale(yMaxDomain) + (rectHeight / 4);
+						//return objD3.getY0Scale(dataCount) + (rectHeight / 4);
+					})
+					.attr("width", function(d){
+						// var temp1 = objD3.getX0Scale(d[x2]); //end
+						// var temp2 = objD3.getX0Scale(d[dx2]);
+						// var temp = temp1 > temp2 ? temp2:temp1;
+						// return temp - objD3.getX0Scale(d[x1]);//start;
+						
+						var startData = new Date(d[startField]);
+						var endData = new Date(d[endField]);
+						var maxData = maxEnd;
+						endData = endData.getTime() > maxData.getTime() ? maxData:endData;
+						
+						return objD3._getXAxisScale()(endData) - objD3._getXAxisScale()(startData);
+					})
+					.attr("height", function(){
+						return rectHeight / 2;
+					});
+				
+				
+				if(balloonText !== null && objRects !== null){
+					var balloonOpt = {
+						"type": "rect",
+						"value": balloonText
+					};
+					this._createBalloon(objRects, balloonOpt);
+				}
+				
+			}
 			
 			
 		},
@@ -1414,7 +1610,7 @@ NaruSecD3.prototype = function () {
 			}
 			
 			return d3.rgb(resultColor);
-		
+			
 		},
 		
 		createToolTip: function(optBalloon){
@@ -1447,7 +1643,7 @@ NaruSecD3.prototype = function () {
 			
 			var type = optBalloon.type;
 			var fmtText = optBalloon.value;
-			//var dateFormat = optBalloon.dateFormat; //date origin format
+			var dateFormat = this.balloon.dateFormat;
 			//var timeFormat = optBalloon.timeFormat; // change format
 			var regexp = /[\[]{2}([^\]]+)[\]]{2}/g;
 			
@@ -1463,311 +1659,59 @@ NaruSecD3.prototype = function () {
 			 */
 			objOver.on("mousemove.one", function() {//툴팁 좌표이동
 				var clientPos = d3.select("#"+chartId).select("svg").node().getBoundingClientRect();
-				console.log(d3.select(divToolTip));
-				objD3.hideToolTip(divToolTip);
-				
-				var arrowLine = divToolTip.select(".arrow-line");
-				var arrowClientRect = arrowLine.node().getBoundingClientRect();
-				console.log("arrowClientRect", arrowClientRect.width, arrowClientRect.height);
-				var toolTipContentWidth = parseInt(divToolTip.style("width"), 10);
-				var toolTipContentHeight = parseInt(divToolTip.style("height"), 10);
-				var toolTipArrowWidth = parseInt(arrowClientRect.width, 10) / 2;
-				var toolTipArrowHeight = parseInt(arrowClientRect.height, 10) / 2;
-				var toolTipWidth = toolTipContentWidth;
-				var toolTipHeight = toolTipContentHeight + toolTipArrowHeight;
-				
-			
-				
-				console.log("toolTipArrowHeight", toolTipArrowWidth, toolTipArrowHeight);
-				
-				var limitMinX = 0;
-				var limitMaxX = clientPos.width - toolTipWidth;
-				var limitMinY = 0;
-				var limitMaxY = clientPos.height - toolTipHeight;
-				
-				var posX = d3.event.clientX - clientPos.left - (toolTipWidth / 2);
-				var posY = d3.event.clientY - clientPos.top - (toolTipHeight);
-				
-				console.log(d3.event.clientY, clientPos.top, (toolTipHeight));
-				
-				divToolTip.classed("top", false);
-				divToolTip.classed("bottom", false);
-				divToolTip.classed("left", false);
-				divToolTip.classed("right", false);
-				
-				divToolTip.select(".arrow-line").style("top", null);
-				divToolTip.select(".arrow-line").style("right", null);
-				divToolTip.select(".arrow-line").style("left", null);
-				divToolTip.select(".arrow-line").style("bottom", null);
-				divToolTip.select(".arrow-middle").style("top", null);
-				divToolTip.select(".arrow-middle").style("right", null);
-				divToolTip.select(".arrow-middle").style("left", null);
-				divToolTip.select(".arrow-middle").style("bottom", null);
-				
-				//check posX
-				if(posX > limitMaxX){
-					posX = posX - ((toolTipWidth + toolTipArrowWidth)/ 2);
-					divToolTip.classed("left", true);
-				}else if(posX < limitMinX){
-					posX = d3.event.clientX - clientPos.left + (toolTipArrowWidth / 2);
-					
-					divToolTip.classed("right", true);
-				}
-				
-				if(divToolTip.classed("left") || divToolTip.classed("right")){
-					posY = d3.event.clientY - clientPos.top - (toolTipContentHeight / 2);
-					
-					if(posY > limitMaxY){
-						posY = limitMaxY;
-						
-						divToolTip.select(".arrow-line").style("top", (d3.event.clientY - clientPos.top - posY)+"px");
-						divToolTip.select(".arrow-middle").style("top", (d3.event.clientY - clientPos.top - posY)+"px");
-					}
-				}
-				
-				
-				if(!divToolTip.classed("left") && !divToolTip.classed("right")){
-					//check posY
-					if(posY < limitMinY){
-						posY = limitMinY;
-						
-						if(toolTipHeight > (d3.event.clientY - clientPos.top)){
-							posY = d3.event.clientY - clientPos.top + (toolTipArrowHeight);// + (toolTipHeight + toolTipArrowHeight + 10);
-							divToolTip.classed("bottom", true);
-						}else{
-							divToolTip.classed("top", true);
-						}
-					}else{
-						divToolTip.classed("top", true);
-					}
-				}
-	
-				var borderColor = divToolTip.style("border-color");
-				var heightMarginSize = 2;
-				var widthMarginSize = 5;
-				if(divToolTip.classed("bottom")){
-					arrowLine.style("border-top-color", "transparent");
-					arrowLine.style("border-right-color", "transparent");
-					arrowLine.style("border-bottom-color", borderColor);
-					arrowLine.style("border-left-color", "transparent");
-					
-					posY = posY + heightMarginSize;
-				}else if(divToolTip.classed("left")){
-					arrowLine.style("border-top-color", "transparent");
-					arrowLine.style("border-right-color", "transparent");
-					arrowLine.style("border-bottom-color", "transparent");
-					arrowLine.style("border-left-color", borderColor);
-					
-					posX = posX - widthMarginSize;
-				}else if(divToolTip.classed("right")){
-					arrowLine.style("border-top-color", "transparent");
-					arrowLine.style("border-right-color", borderColor);
-					arrowLine.style("border-bottom-color", "transparent");
-					arrowLine.style("border-left-color", "transparent");
-					
-					posX = posX + widthMarginSize;
-				}else{//basic top
-					arrowLine.style("border-top-color", borderColor);
-					arrowLine.style("border-right-color", "transparent");
-					arrowLine.style("border-bottom-color", "transparent");
-					arrowLine.style("border-left-color", "transparent");
-					
-					posY = posY - heightMarginSize;
-				}
-				
-				divToolTip.style("left", posX + "px")
-					.style("top", posY + "px");
-				
-				objD3.showToolTip(divToolTip);
-			});
-			
-			/**
-			 * tooltip set text
-			 * tooltip color변경(border)
-			 */
-			function mouseOverToolTip(fillColor, i, d){
-				var toolTipMessage = fmtText.replace(regexp, function(match, p1){//match, p1, p2, p3, offset, string
-					var dataMap = d.data === undefined ? d:d.data;
-					// if(objD3.getX0Value() === p1 && timeFormat){
-					// 	if(dataMap[p1] instanceof Date){
-					// 		return NaruSecD3.getTimeString(timeFormat, dataMap[p1]);
-					// 	}
-					// 	return NaruSecD3.getTimeString(timeFormat, NaruSecD3.getTimeDate(dateFormat, dataMap[p1]));
-					// }
-					return dataMap[p1] !== undefined && dataMap[p1] !== null ? dataMap[p1]:"";
-				});
-				
-				divToolTip.select(".content").html(toolTipMessage);
-				
-				// var borderColor = "";
-				// if(!d.color){//TODO colorField
-				// 	borderColor = objD3.getGraphColor(fillColor, i, true);
-				// }else{
-				// 	borderColor = objD3.getGraphColor(d.color, i);
-				// }
-				//
-				var borderColor = objD3._getGraphColor(fillColor, i).darker(0.5);
-				divToolTip.style("border", "2px solid "+ borderColor);
-				
-				return borderColor;
-			}
-			
-			if(type === "rect" || type === "pie"){
-				objOver.on("mouseover.one", function(d, i){
-					var obj = d3.select(this);
-					var color = d.color;
-					if(!color){
-						color = obj.attr("fill");
-						// var gradientUrl = "url(#gradient_"+chartId+"_";
-						//
-						// color = color.replace(gradientUrl, "").replace(')', "");
-						//if(color) color = "#"+color;
-					}
-					mouseOverToolTip(color, i, d);
-				});
-			}else if(type === "circle"){
-				objOver.on("mouseout.one", function(){
-					var obj = d3.select(this);
-					// if(objD3.rScale){
-					// 	obj.transition().duration(500)
-					// 		.attr("r", function(d){
-					// 			return objD3.rScale(d[objD3.getX0Value()]);
-					// 		});
-					// }else{
-					// 	obj.transition().duration(500).attr("r", 2);
-					// }
-					
-					var rSize = obj.attr("r");
-					if(rSize === undefined) rSize = 2;
-					obj.transition().duration(500).attr("r", rSize - 1);
-				})
-				.on("mouseover.one", function(d, i){
-					var obj = d3.select(this);
-					var color = d.color ? d.color:NaruSecD3.rgbToHex(d3.select(this).style("stroke"));
-					
-					mouseOverToolTip(color, i, d);
-					
-					// if(objD3.rScale){
-					// 	obj.transition().duration(100)
-					// 		.attr("r", function(d){
-					// 			return objD3.rScale(d[objD3.getX0Value()]) + 1;
-					// 		});
-					// }else{
-					// 	obj.transition().duration(100).attr("r", 3);
-					// }
-					
-					var rSize = obj.attr("r");
-					if(rSize === undefined) rSize = 3;
-					obj.transition().duration(500).attr("r", rSize + 1);
-				});
-			}else if(type === "force"){
-				objOver.on("mouseout.one", function(){
-					var obj = d3.select(this);
-					obj.transition().duration(500).attr("r", 2);
-				})
-				.on("mouseover.one", function(d, i){
-					var obj = d3.select(this);
-					var color = d.color;
-					if(!color){
-						color = obj.attr("fill");
-						// var gradientUrl = "url(#gradient_"+objD3.chartId+"_";
-						//
-						// color = color.replace(gradientUrl, "").replace(')', "");
-						// if(color) color = "#"+color;
-					}
-					mouseOverToolTip(color, i, d);
-					obj.transition().duration(100).attr("r", 3);
-				});
-			}else if(type === "treemap"){
-				//console.log("_createBalloon", type);
-				objOver.on("mouseover.one", function(d, i){
-					var obj = d3.select(this);
-					var color = d.color;
-					if(!color){
-						color = obj.attr("fill");
-						// var gradientUrl = "url(#gradient_"+objD3.chartId+"_";
-						//
-						// color = color.replace(gradientUrl, "").replace(')', "");
-						// if(color) color = "#"+color;
-					}
-					mouseOverToolTip(color, i, d);
-				});
-			}
-		},
-		
-		
-		_createBalloonBBBB: function(objOver, type, balloonText){
-			//console.log("_createBalloon", objOver, type, balloonText)
-			var objD3 = this;
-			var chartId = this.chart.chartId;
-			
-			var divToolTip = createToolTipLayer();
-			var drawer = this._getDrawer();
-			
-			drawer.on("mouseleave", function(){
-				objD3.hideToolTip(divToolTip);
-			});
-			
-			var regexp = /[\[]{2}([^\]]+)[\]]{2}/g;
-			
-			/**
-			 * tooltip 좌표이동
-			 * tooltip 왼쪽,오른쪽,위,아래인지 체크
-			 * tooltip color변경(border)
-			 * tooltip show
-			 */
-			objOver.on("mousemove.one", function() {//툴팁 좌표이동
-				var clientPos = d3.select("#"+chartId).select("svg").node().getBoundingClientRect();
+//				console.log(d3.select(divToolTip));
 				objD3.hideToolTip(divToolTip);
 				
 				var arrowLine = divToolTip.select(".arrow-line");
 				var arrowMiddle = divToolTip.select(".arrow-middle");
 				
-				
-				var arrowLinePos = arrowLine.node().getBoundingClientRect();
-				var divToolTipPos = divToolTip.node().getBoundingClientRect();
-				var toolTipContentWidth = parseInt(divToolTipPos.width, 10);
-				var toolTipContentHeight = parseInt(divToolTipPos.height, 10);
-				var toolTipArrowWidth = parseInt(arrowLinePos.width, 10) / 2;
-				var toolTipArrowHeight = parseInt(arrowLinePos.height, 10) / 2;
-				var toolTipWidth = toolTipContentWidth;// width는 toolTipArrowWidth 영향 없음
+				var tooltipClientRect = divToolTip.node().getBoundingClientRect();
+				var arrowClientRect = arrowLine.node().getBoundingClientRect();
+//				console.log("arrowClientRect", arrowClientRect.width, arrowClientRect.height);
+				var toolTipContentWidth = tooltipClientRect.width;
+				var toolTipContentHeight = tooltipClientRect.height;
+				var toolTipArrowWidth = arrowClientRect.width / 2;
+				var toolTipArrowHeight = arrowClientRect.height / 2;
+				var toolTipWidth = toolTipContentWidth;
 				var toolTipHeight = toolTipContentHeight + toolTipArrowHeight;
+
+
+
+//				console.log("toolTipArrowHeight", toolTipArrowWidth, toolTipArrowHeight);
 				
 				var limitMinX = 0;
 				var limitMaxX = clientPos.width - toolTipWidth;
 				var limitMinY = 0;
 				var limitMaxY = clientPos.height - toolTipHeight;
 				
-				console.log("toolTipHeight", toolTipHeight);
+				//console.log('divToolTip.style("width")', divToolTip.style("width"), divToolTip.node().getBoundingClientRect().width)
 				
 				var posX = d3.event.clientX - clientPos.left - (toolTipWidth / 2);
 				var posY = d3.event.clientY - clientPos.top - (toolTipHeight);
+				
+				//console.log("b->", posX, posY);
 				
 				divToolTip.classed("top", false);
 				divToolTip.classed("bottom", false);
 				divToolTip.classed("left", false);
 				divToolTip.classed("right", false);
-		
-				arrowLine.style({
-					"top": null,
-					"right": null,
-					"left": null,
-					"bottom": null
-				});
-			
-				arrowMiddle.style({
-					"top": null,
-					"right": null,
-					"left": null,
-					"bottom": null
-				});
-
+				
+				arrowLine.style("top", null);
+				arrowLine.style("right", null);
+				arrowLine.style("left", null);
+				arrowLine.style("bottom", null);
+				arrowMiddle.style("top", null);
+				arrowMiddle.style("right", null);
+				arrowMiddle.style("left", null);
+				arrowMiddle.style("bottom", null);
+				
 				//check posX
 				if(posX > limitMaxX){
 					posX = posX - ((toolTipWidth + toolTipArrowWidth)/ 2);
 					divToolTip.classed("left", true);
 				}else if(posX < limitMinX){
 					posX = d3.event.clientX - clientPos.left + (toolTipArrowWidth / 2);
+					
 					divToolTip.classed("right", true);
 				}
 				
@@ -1799,7 +1743,6 @@ NaruSecD3.prototype = function () {
 					}
 				}
 				
-				//var arrowLine = divToolTip.select(".arrow-line");
 				var borderColor = divToolTip.style("border-color");
 				var heightMarginSize = 2;
 				var widthMarginSize = 5;
@@ -1833,37 +1776,36 @@ NaruSecD3.prototype = function () {
 					posY = posY - heightMarginSize;
 				}
 				
-			
 				divToolTip.style("left", posX + "px")
 					.style("top", posY + "px");
+				
+				//console.log("a->", posX, posY);
 				
 				objD3.showToolTip(divToolTip);
 			});
 			
-			
-			
-			//var dateFormat = this.chart.dateFormat;
-			var xValue = this._getXAxisValue();
 			/**
 			 * tooltip set text
 			 * tooltip color변경(border)
 			 */
 			function mouseOverToolTip(fillColor, i, d){
-				var toolTipMessage = balloonText.replace(regexp, function(match, p1){//match, p1, p2, p3, offset, string
+				var toolTipMessage = fmtText.replace(regexp, function(match, p1){//match, p1, p2, p3, offset, string
 					var dataMap = d.data === undefined ? d:d.data;
+					// if(objD3.getX0Value() === p1 && timeFormat){
+					// 	if(dataMap[p1] instanceof Date){
+					// 		return NaruSecD3.getTimeString(timeFormat, dataMap[p1]);
+					// 	}
+					// 	return NaruSecD3.getTimeString(timeFormat, NaruSecD3.getTimeDate(dateFormat, dataMap[p1]));
+					// }
 					
-					//console.log(xValue, dataMap[p1]);
-					/*
-					if(xValue === p1 && timeFormat){
-						if(dataMap[p1] instanceof Date){
-							return NaruSecD3.getTimeString(timeFormat, dataMap[p1]);
-						}
-						return NaruSecD3.getTimeString(timeFormat, NaruSecD3.getTimeDate(dateFormat, dataMap[p1]));
+					console.log("dateFormat", dateFormat, dataMap[p1])
+					if(NaruSecD3.isValid(dateFormat) && dataMap[p1] instanceof Date){
+						return NaruSecD3.getTimeString(dateFormat, dataMap[p1]);
 					}
-					*/
+					
 					return dataMap[p1] !== undefined && dataMap[p1] !== null ? dataMap[p1]:"";
 				});
-				//console.log("toolTipMessage", toolTipMessage);
+				
 				divToolTip.select(".content").html(toolTipMessage);
 				
 				// var borderColor = "";
@@ -1872,7 +1814,7 @@ NaruSecD3.prototype = function () {
 				// }else{
 				// 	borderColor = objD3.getGraphColor(d.color, i);
 				// }
-				
+				//
 				var borderColor = objD3._getGraphColor(fillColor, i).darker(0.5);
 				divToolTip.style("border", "2px solid "+ borderColor);
 				
@@ -1890,86 +1832,79 @@ NaruSecD3.prototype = function () {
 						// color = color.replace(gradientUrl, "").replace(')', "");
 						//if(color) color = "#"+color;
 					}
+					
+					console.log("asdadasdas", mouseOverToolTip)
 					mouseOverToolTip(color, i, d);
 				});
 			}else if(type === "circle"){
-				//console.log("type", type);
 				objOver.on("mouseout.one", function(){
 					var obj = d3.select(this);
-					if(objD3.rScale){
-						obj.transition().duration(500)
-							.attr("r", function(d){
-								return objD3.rScale(d[xValue]);
-							});
-					}else{
-						obj.transition().duration(500).attr("r", 2);
-					}
+					// if(objD3.rScale){
+					// 	obj.transition().duration(500)
+					// 		.attr("r", function(d){
+					// 			return objD3.rScale(d[objD3.getX0Value()]);
+					// 		});
+					// }else{
+					// 	obj.transition().duration(500).attr("r", 2);
+					// }
+					
+					var rSize = parseInt(obj.attr("r"), 10);
+					if(rSize === undefined) rSize = 2;
+					obj.transition().duration(500).attr("r", rSize - 1);
+					console.log("after ", obj.attr("r"))
 				})
-				.on("mouseover.one", function(d, i){
-					var obj = d3.select(this);
-					var color = d.color ? d.color:NaruSecD3.rgbToHex(d3.select(this).style("stroke"));
-					
-					mouseOverToolTip(color, i, d);
-					
-					if(objD3.rScale){
-						obj.transition().duration(100)
-							.attr("r", function(d){
-								return objD3.rScale(d[xValue]) + 1;
-							});
-					}else{
-						obj.transition().duration(100).attr("r", 3);
-					}
-				});
+					.on("mouseover.one", function(d, i){
+						var obj = d3.select(this);
+						var color = d.color ? d.color:NaruSecD3.rgbToHex(d3.select(this).style("stroke"));
+						
+						mouseOverToolTip(color, i, d);
+						
+						// if(objD3.rScale){
+						// 	obj.transition().duration(100)
+						// 		.attr("r", function(d){
+						// 			return objD3.rScale(d[objD3.getX0Value()]) + 1;
+						// 		});
+						// }else{
+						// 	obj.transition().duration(100).attr("r", 3);
+						// }
+						
+						var rSize = parseInt(obj.attr("r"), 10);
+						console.log("rSize", rSize);
+						if(rSize === undefined) rSize = 3;
+						obj.transition().duration(500).attr("r", rSize + 1);
+					});
 			}else if(type === "force"){
 				objOver.on("mouseout.one", function(){
 					var obj = d3.select(this);
 					obj.transition().duration(500).attr("r", 2);
 				})
-				.on("mouseover.one", function(d, i){
+					.on("mouseover.one", function(d, i){
+						var obj = d3.select(this);
+						var color = d.color;
+						if(!color){
+							color = obj.attr("fill");
+							// var gradientUrl = "url(#gradient_"+objD3.chartId+"_";
+							//
+							// color = color.replace(gradientUrl, "").replace(')', "");
+							// if(color) color = "#"+color;
+						}
+						mouseOverToolTip(color, i, d);
+						obj.transition().duration(100).attr("r", 3);
+					});
+			}else if(type === "treemap"){
+				//console.log("_createBalloon", type);
+				objOver.on("mouseover.one", function(d, i){
 					var obj = d3.select(this);
 					var color = d.color;
 					if(!color){
 						color = obj.attr("fill");
-						var gradientUrl = "url(#gradient_" + chartId + "_";
-						
-						color = color.replace(gradientUrl, "").replace(')', "");
-						if(color) color = "#"+color;
-					}
-					mouseOverToolTip(color, i, d);
-					obj.transition().duration(100).attr("r", 3);
-				});
-			}else if(type === "treemap") {
-				//console.log("_createBalloon", type);
-				objOver.on("mouseover.one", function (d, i) {
-					var obj = d3.select(this);
-					var color = d.color;
-					if (!color) {
-						color = obj.attr("fill");
-						var gradientUrl = "url(#gradient_" + chartId + "_";
-						
-						color = color.replace(gradientUrl, "").replace(')', "");
-						if (color) color = "#" + color;
+						// var gradientUrl = "url(#gradient_"+objD3.chartId+"_";
+						//
+						// color = color.replace(gradientUrl, "").replace(')', "");
+						// if(color) color = "#"+color;
 					}
 					mouseOverToolTip(color, i, d);
 				});
-			}
-			
-			function createToolTipLayer(){
-				var objChart = d3.select("#"+chartId);
-				var toolTipClassName = "naru-d3-tooltip";
-				var divToolTip = objChart.select("." + toolTipClassName);
-				if (divToolTip.size() === 0) {
-					divToolTip = objChart.append("div").attr("class", toolTipClassName);
-					divToolTip.append("span").attr("class", "content");
-					divToolTip.append("span").attr("class", "arrow-line");
-					divToolTip.append("span").attr("class", "arrow-middle");
-				}
-				
-				divToolTip.style({
-					"border-radius":objD3.legend.radius+"px"
-				});
-				
-				return divToolTip;
 			}
 		},
 		
@@ -2064,7 +1999,7 @@ NaruSecD3.prototype = function () {
 			
 			resizeEvent[chartId] = test;
 			
-		
+			
 		},
 		
 		removeWindowResizeEvent: function () {
@@ -2147,13 +2082,14 @@ NaruSecD3.prototype = function () {
 
 NaruSecD3.createGraph = function(opt, data){
 	var objD3 = new NaruSecD3();
-
+	
 	if(!objD3.setOption(opt)) return;
 	
 	
 	objD3._createSvg();
-	objD3._createXAxis();
-	objD3._createYAxis();
+	
+	
+	
 	
 	for(var i = 0; i < objD3.graph.length; i++){
 		var objGraph = objD3.graph[i];
@@ -2168,8 +2104,20 @@ NaruSecD3.createGraph = function(opt, data){
 		}else if(i === 0 && objGraph.type === "scatter"){
 			objGraph.draw = objD3._createScatterPlot(objGraph);
 			break;
+		}else if(i === 0 && objGraph.type === "duration"){
+			console.log(objD3.xAxis);
+			objD3.xAxis[i].type = "time";
+			objD3.yAxis[i].position = null;
+			objGraph.draw = objD3._createDuration(objGraph);
+			break;
+		}else if(i === 0 && objGraph.type === "pie"){
+			objGraph.draw = objD3._createPie(objGraph);
+			break;
 		}
 	}
+	
+	objD3._createXAxis();
+	objD3._createYAxis();
 	
 	if(data){
 		//초기에 setData 할 경우
